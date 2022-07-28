@@ -1,17 +1,20 @@
-import type { GetPagePropertyResponse } from "@notionhq/client/build/src/api-endpoints";
+import { Client } from "@notionhq/client";
+import type {
+  CreatePageResponse,
+  GetPagePropertyResponse,
+} from "@notionhq/client/build/src/api-endpoints";
 import pThrottle from "p-throttle";
 import type { U } from "ts-toolbelt";
 
 export const throttle = pThrottle({
-  limit: 5,
+  limit: 10,
   interval: 1000,
 });
-
 
 export async function throttledAPICall<T>(
   fn: (...args: any) => Promise<any>
 ): Promise<T | null> {
-  try {
+  try {  
     const res = (await throttle(fn)()) as T;
     return res;
   } catch (error) {
@@ -84,4 +87,28 @@ export function getFile(
     }
     return res;
   }, []);
+}
+
+export async function getProperties(
+  client: Client,
+  page: U.Merge<CreatePageResponse> | null | undefined
+): Promise<Record<string, GetPagePropertyResponse> | null> {
+  if (!page) return null;
+  const props = await Promise.all(
+    Object.values(page.properties).map((prop) =>
+      throttledAPICall<GetPagePropertyResponse>(() =>
+        client.pages.properties.retrieve({
+          page_id: page.id,
+          property_id: prop.id,
+        })
+      )
+    )
+  );
+  const result = {} as Record<string, GetPagePropertyResponse>;
+  Object.keys(page.properties).forEach((key, index) => {
+    if (props[index]) {
+      result[key] = props[index] as GetPagePropertyResponse;
+    }
+  });
+  return result;
 }

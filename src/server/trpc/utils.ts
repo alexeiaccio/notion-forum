@@ -7,6 +7,7 @@ export const t = initTRPC<{ ctx: Context }>()({
   errorFormatter({ shape }) {
     return shape;
   },
+  
 });
 
 export const authedProcedure = t.procedure.use(({ ctx, next }) => {

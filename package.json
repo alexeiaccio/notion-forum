@@ -10,11 +10,15 @@
   },
   "dependencies": {
     "@notionhq/client": "^2.1.0",
+    "@radix-ui/react-icons": "^1.1.1",
     "@tanstack/react-query": "^4.0.10",
     "@trpc/client": "10.0.0-alpha.40",
     "@trpc/next": "10.0.0-alpha.40",
     "@trpc/react": "10.0.0-alpha.40",
     "@trpc/server": "10.0.0-alpha.40",
+    "ariakit": "2.0.0-next.36",
+    "cva": "npm:class-variance-authority@^0.2.3",
+    "date-fns": "^2.29.1",
     "next": "12.2.3",
     "next-auth": "^4.10.1",
     "openid-client": "^5.1.8",
@@ -22,6 +26,7 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "superjson": "^1.9.1",
+    "tailwind-merge": "^1.5.1",
     "zod": "^3.17.10"
   },
   "devDependencies": {

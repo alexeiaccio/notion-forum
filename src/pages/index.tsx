@@ -1,7 +1,11 @@
-import type { NextPage } from "next";
+import { createSSGHelpers } from "@trpc/react/ssg";
+import { AnyRouter } from "@trpc/server/dist/core/router";
+import type { InferGetStaticPropsType, NextPage } from "next";
 import { signIn, signOut } from "next-auth/react";
 import Head from "next/head";
 import Image from "next/image";
+import superjson from "superjson";
+import { appRouter } from "../server/trpc/router";
 import { trpc } from "../utils/trpc";
 
 const Home: NextPage = () => {
@@ -36,9 +40,10 @@ const AuthShowcase: React.FC = () => {
   const { data: sessionData } = trpc.proxy.auth.getSession.useQuery();
   const { data: secretMessage } = trpc.proxy.auth.getSecretMessage.useQuery();
 
+
   return (
     <div>
-      {sessionData && <p>Logged in as {sessionData?.user?.name}</p>}
+      {sessionData && <p>Logged in as {sessionData.user?.name}</p>}
       {secretMessage && <p>{secretMessage}</p>}
       {sessionData?.user?.image && (
         <Image

@@ -1,27 +1,18 @@
 import type { Client } from "@notionhq/client";
 import type {
-  CreatePageResponse,
-  GetPagePropertyResponse,
-  GetPageResponse,
+  CreatePageResponse, GetPageResponse,
   QueryDatabaseResponse,
-  UpdatePageResponse,
+  UpdatePageResponse
 } from "@notionhq/client/build/src/api-endpoints";
-import type { Account } from "next-auth";
 import type {
-  Adapter,
-  AdapterSession,
-  AdapterUser,
-  VerificationToken,
+  Adapter, AdapterUser
 } from "next-auth/adapters";
-import type { ProviderType } from "next-auth/providers";
 import type { F, U } from "ts-toolbelt";
 import { env } from "../../server/env";
+import { parseAccount, parseSession, parseUser, parseVerificationToken } from "../notion/api";
 import {
-  getFile,
-  getProperty,
-  richTextToPlainText,
-  throttledAPICall,
-  uuidFromID,
+  getProperties, throttledAPICall,
+  uuidFromID
 } from "../notion/utils";
 
 const USER_DB = env.NOTION_USER_DB_ID!;
@@ -521,111 +512,4 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
       return parseVerificationToken(verificationTokenProps);
     },
   };
-}
-
-function parseUser(
-  id: string,
-  user: Record<string, GetPagePropertyResponse>
-): AdapterUser {
-  const emailVerified = getProperty(user, "emailVerified", "number");
-  return {
-    id,
-    name: richTextToPlainText(getProperty(user, "name", "title")),
-    email: getProperty(user, "email", "email"),
-    emailVerified: emailVerified ? new Date(emailVerified) : null,
-    image: getFile(getProperty(user, "image", "files"))?.[0]?.url,
-  };
-}
-
-function parseAccount(
-  account: Record<string, GetPagePropertyResponse>
-): Account {
-  return {
-    id: richTextToPlainText(getProperty(account, "id", "title")),
-    userId: getProperty(account, "userId", "relation")?.id || "",
-    type: (getProperty(account, "type", "select")?.name ||
-      "oauth") as ProviderType,
-    provider:
-      richTextToPlainText(getProperty(account, "provider", "rich_text")) ?? "",
-    providerAccountId:
-      richTextToPlainText(getProperty(account, "providerAccountId", "title")) ??
-      "",
-    refresh_token:
-      richTextToPlainText(getProperty(account, "refresh_token", "rich_text")) ??
-      "",
-    access_token:
-      richTextToPlainText(getProperty(account, "access_token", "rich_text")) ??
-      "",
-    expires_at: getProperty(account, "expires_at", "number") || undefined,
-    token_type:
-      richTextToPlainText(getProperty(account, "token_type", "rich_text")) ||
-      undefined,
-    scope:
-      richTextToPlainText(getProperty(account, "scope", "rich_text")) ||
-      undefined,
-    id_token:
-      richTextToPlainText(getProperty(account, "id_token", "rich_text")) ||
-      undefined,
-    session_state:
-      richTextToPlainText(getProperty(account, "session_state", "rich_text")) ||
-      undefined,
-    oauth_token_secret:
-      richTextToPlainText(
-        getProperty(account, "oauth_token_secret", "rich_text")
-      ) || undefined,
-    oauth_token:
-      richTextToPlainText(getProperty(account, "oauth_token", "rich_text")) ||
-      undefined,
-  };
-}
-
-function parseSession(
-  id: string,
-  session: Record<string, GetPagePropertyResponse>
-): AdapterSession {
-  const expires = getProperty(session, "expires", "number");
-  return {
-    id,
-    userId: getProperty(session, "userId", "relation")?.id || "",
-    expires: expires ? new Date(expires) : new Date(),
-    sessionToken:
-      richTextToPlainText(getProperty(session, "sessionToken", "title")) || "",
-  };
-}
-
-function parseVerificationToken(
-  session: Record<string, GetPagePropertyResponse>
-): VerificationToken {
-  const expires = getProperty(session, "expires", "number");
-  return {
-    identifier:
-      richTextToPlainText(getProperty(session, "identifier", "title")) || "",
-    expires: expires ? new Date(expires) : new Date(),
-    token:
-      richTextToPlainText(getProperty(session, "token", "rich_text")) || "",
-  };
-}
-
-async function getProperties(
-  client: Client,
-  page: U.Merge<CreatePageResponse> | null | undefined
-): Promise<Record<string, GetPagePropertyResponse> | null> {
-  if (!page) return null;
-  const props = await Promise.all(
-    Object.values(page.properties).map((prop) =>
-      throttledAPICall<GetPagePropertyResponse>(() =>
-        client.pages.properties.retrieve({
-          page_id: page.id,
-          property_id: prop.id,
-        })
-      )
-    )
-  );
-  const result = {} as Record<string, GetPagePropertyResponse>;
-  Object.keys(page.properties).forEach((key, index) => {
-    if (props[index]) {
-      result[key] = props[index] as GetPagePropertyResponse;
-    }
-  });
-  return result;
 }
