@@ -71,7 +71,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
             properties,
           }),
       )
-      const userProps = await getProperties(client, createdUser)
+      const userProps = await getProperties(client, { page: createdUser })
       if (!createdUser || !userProps) {
         throw new Error('Failed to create user')
       }
@@ -83,7 +83,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
           page_id: uuidFromID(id),
         }),
       )
-      const userProps = await getProperties(client, user)
+      const userProps = await getProperties(client, { page: user })
       if (!user || !userProps) return null
       return parseUser(user?.id, userProps)
     },
@@ -106,7 +106,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
       const user = users?.results?.[0] as U.Merge<
         QueryDatabaseResponse['results'][0]
       >
-      const userProps = await getProperties(client, user)
+      const userProps = await getProperties(client, { page: user })
       if (!user || !userProps) return null
       return parseUser(user?.id, userProps)
     },
@@ -152,7 +152,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
       const user = users?.results?.[0] as U.Merge<
         QueryDatabaseResponse['results'][0]
       >
-      const userProps = await getProperties(client, user)
+      const userProps = await getProperties(client, { page: user })
       if (!user || !userProps) return null
       return parseUser(user?.id, userProps)
     },
@@ -198,7 +198,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
             properties,
           }),
       )
-      const userProps = await getProperties(client, updatedUser)
+      const userProps = await getProperties(client, { page: updatedUser })
       if (!updatedUser || !userProps) {
         throw new Error('Failed to update user')
       }
@@ -212,7 +212,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
             archived: true,
           }),
       )
-      const userProps = await getProperties(client, deletedUser)
+      const userProps = await getProperties(client, { page: deletedUser })
       if (!deletedUser || !userProps) return null
       return parseUser(deletedUser?.id, userProps)
     },
@@ -290,7 +290,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
           properties,
         }),
       )
-      const accountProps = await getProperties(client, createdAccount)
+      const accountProps = await getProperties(client, { page: createdAccount })
       if (!createdAccount || !accountProps) {
         throw new Error('Failed to create account')
       }
@@ -344,7 +344,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
           },
         }),
       )
-      const sessionProps = await getProperties(client, createdSession)
+      const sessionProps = await getProperties(client, { page: createdSession })
       if (!createdSession || !sessionProps) {
         throw new Error('Failed to create account')
       }
@@ -365,7 +365,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
         }),
       )
       const session = sessions?.results?.[0] as QueryDatabaseResult
-      const sessionProps = await getProperties(client, session)
+      const sessionProps = await getProperties(client, { page: session })
       if (!session || !sessionProps) return null
       const users = await throttledAPICall<QueryDatabaseResponse>(() =>
         client.databases.query({
@@ -381,7 +381,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
         }),
       )
       const user = users?.results?.[0] as QueryDatabaseResult
-      const userProps = await getProperties(client, user)
+      const userProps = await getProperties(client, { page: user })
       if (!user || !userProps) return null
       return {
         session: parseSession(session.id, sessionProps),
@@ -416,7 +416,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
           },
         }),
       )
-      const sessionProps = await getProperties(client, updatedSession)
+      const sessionProps = await getProperties(client, { page: updatedSession })
       if (!updatedSession || !sessionProps) {
         throw new Error('Failed to update account')
       }
@@ -465,10 +465,9 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
           },
         }),
       )
-      const verificationTokenProps = await getProperties(
-        client,
-        createdVerificationToken,
-      )
+      const verificationTokenProps = await getProperties(client, {
+        page: createdVerificationToken,
+      })
       if (!createdVerificationToken || !verificationTokenProps) return null
       return parseVerificationToken(verificationTokenProps)
     },
@@ -505,10 +504,9 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
           archived: true,
         }),
       )
-      const verificationTokenProps = await getProperties(
-        client,
-        tokenToVerificate,
-      )
+      const verificationTokenProps = await getProperties(client, {
+        page: tokenToVerificate,
+      })
       if (!tokenToVerificate || !verificationTokenProps) return null
       return parseVerificationToken(verificationTokenProps)
     },
