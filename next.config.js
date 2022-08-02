@@ -6,6 +6,14 @@ const nextConfig = {
   images: {
     domains: ['lh5.googleusercontent.com'],
   },
+  webpack(config) {
+    config.module.rules.push({
+      test: [/src\/components\/index.ts/i],
+      sideEffects: false,
+    })
+
+    return config
+  },
 }
 
 module.exports = nextConfig
