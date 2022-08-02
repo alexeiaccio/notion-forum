@@ -1,14 +1,19 @@
-import "../styles/globals.css";
-// import { SessionProvider } from "next-auth/react";
-import type { AppType } from "next/dist/shared/lib/utils";
-import { trpc } from "../utils/trpc";
+import { AppProps } from 'next/app'
+import { ReactNode } from 'react'
+import { trpc } from '~/utils/trpc'
+import '../styles/globals.css'
 
-const MyApp: AppType = ({ Component, pageProps }) => {
-  return (
-    // <SessionProvider session={pageProps.session}>
-      <Component {...pageProps} />
-    // </SessionProvider>
-  );
-};
+function MyApp({
+  Component,
+  pageProps,
+}: AppProps & {
+  Component: AppProps['Component'] & {
+    getLayout: ((comp: ReactNode) => ReactNode) | undefined
+  }
+}) {
+  const getLayout = Component.getLayout || ((page: ReactNode) => page)
 
-export default trpc.withTRPC(MyApp);
+  return <div>{getLayout(<Component {...pageProps} />)}</div>
+}
+
+export default trpc.withTRPC(MyApp)

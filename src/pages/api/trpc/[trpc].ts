@@ -1,7 +1,7 @@
-import { createNextApiHandler } from "@trpc/server/adapters/next";
-import { differenceInMilliseconds, isAfter, parseISO } from "date-fns";
-import { createContext } from "../../../server/trpc/context";
-import { appRouter } from "../../../server/trpc/router";
+import { createNextApiHandler } from '@trpc/server/adapters/next'
+import { differenceInMilliseconds, isAfter, parseISO } from 'date-fns'
+import { createContext } from '../../../server/trpc/context'
+import { appRouter } from '../../../server/trpc/router'
 
 // export API handler
 export default createNextApiHandler({
@@ -35,4 +35,4 @@ export default createNextApiHandler({
   //   }
   //   return {};
   // },
-});
+})

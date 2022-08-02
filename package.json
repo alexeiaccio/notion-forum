@@ -2,25 +2,28 @@
   "name": "notion-forum",
   "version": "0.1.0",
   "private": true,
+  "author": "Alexei Accio",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint --ext .tsx ./ --fix",
+    "typecheck": "tsc --project tsconfig.json",
+    "prettify": "prettier --write \"**/*.{ts,tsx,md}\" --plugin-search-dir=. ."
   },
   "dependencies": {
-    "@notionhq/client": "^2.1.0",
+    "@notionhq/client": "^2.1.1",
     "@radix-ui/react-icons": "^1.1.1",
     "@tanstack/react-query": "^4.0.10",
-    "@trpc/client": "10.0.0-alpha.40",
-    "@trpc/next": "10.0.0-alpha.40",
-    "@trpc/react": "10.0.0-alpha.40",
-    "@trpc/server": "10.0.0-alpha.40",
+    "@trpc/client": "10.0.0-alpha.41",
+    "@trpc/next": "10.0.0-alpha.41",
+    "@trpc/react": "10.0.0-alpha.41",
+    "@trpc/server": "10.0.0-alpha.41",
     "ariakit": "2.0.0-next.36",
     "cva": "npm:class-variance-authority@^0.2.3",
     "date-fns": "^2.29.1",
-    "next": "12.2.3",
-    "next-auth": "^4.10.1",
+    "next": "12.2.4-canary.8",
+    "next-auth": "^4.10.2",
     "openid-client": "^5.1.8",
     "p-throttle": "^5.0.0",
     "react": "18.2.0",
@@ -30,15 +33,35 @@
     "zod": "^3.17.10"
   },
   "devDependencies": {
-    "@types/node": "18.0.0",
+    "@tailwindcss/typography": "^0.5.4",
+    "@trivago/prettier-plugin-sort-imports": "^3.3.0",
+    "@types/node": "18.6.2",
     "@types/react": "18.0.15",
     "@types/react-dom": "18.0.6",
-    "autoprefixer": "^10.4.7",
+    "autoprefixer": "^10.4.8",
     "eslint": "8.20.0",
-    "eslint-config-next": "12.2.3",
+    "eslint-config-next": "12.2.4-canary.8",
+    "nano-staged": "^0.8.0",
     "postcss": "^8.4.14",
+    "postcss-100vh-fix": "^1.0.2",
+    "prettier": "^2.7.1",
+    "prettier-plugin-tailwindcss": "^0.1.13",
+    "simple-git-hooks": "^2.8.0",
     "tailwindcss": "^3.1.6",
     "ts-toolbelt": "^9.6.0",
     "typescript": "4.7.4"
+  },
+  "engines": {
+    "node": ">=16",
+    "pnpm": ">=7"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "tsc --project tsconfig.json && ./node_modules/.bin/nano-staged"
+  },
+  "nano-staged": {
+    "*.{ts,tsx}": [
+      "eslint --fix",
+      "prettier --write --plugin-search-dir=. ."
+    ]
   }
 }

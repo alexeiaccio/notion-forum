@@ -1,10 +1,13 @@
-import { t, authedProcedure } from "../utils";
+import { getRole } from '~/utils/notion/api'
+import { authedProcedure, t } from '../utils'
 
 export const authRouter = t.router({
   getSession: t.procedure.query(({ ctx }) => {
-    return ctx.session;
+    return ctx.session
   }),
-  getSecretMessage: authedProcedure.query(() => {
-    return "You are logged in and can see this secret message!";
+  getRole: authedProcedure.query(async ({ ctx }) => {
+    if (!ctx.session.user.id) return null
+    const role = await getRole(ctx.session.user.id)
+    return role
   }),
-});
+})

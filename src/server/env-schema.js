@@ -1,4 +1,4 @@
-const { z } = require("zod");
+const { z } = require('zod')
 
 const envSchema = z.object({
   NEXTAUTH_SECRET: z.string(),
@@ -12,6 +12,8 @@ const envSchema = z.object({
   NOTION_ACCOUNT_DB_ID: z.string(),
   NOTION_SESSION_DB_ID: z.string(),
   NOTION_VERIFICATION_TOKEN_DB_ID: z.string(),
-});
+  NOTION_ROLE_DB_ID: z.string(),
+  NOTION_PAGE_DB_ID: z.string(),
+})
 
-module.exports.envSchema = envSchema;
+module.exports.envSchema = envSchema
