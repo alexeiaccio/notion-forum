@@ -392,7 +392,7 @@ export async function getBlockChildren(
 }
 
 export async function postComment(
-  blockId: string,
+  blockId: string | nil,
   authorId: string,
   content: string,
 ): Promise<ContentType | null> {

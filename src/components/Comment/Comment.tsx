@@ -3,6 +3,7 @@ import { format, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
 import { trpc } from '~/utils/trpc'
+import { CommentForm } from '../CommentForm'
 
 export function Comment({
   breadcrambs,
@@ -18,10 +19,18 @@ export function Comment({
     }
   }
 }) {
+  const utils = trpc.proxy.useContext()
   const { data } = trpc.proxy.page.getComment.useQuery(
     { breadcrambs },
     { enabled: breadcrambs.length <= 4 },
   )
+  const { mutate } = trpc.proxy.page.postComment.useMutation({
+    onSuccess(res) {
+      utils.page.getComment.invalidate({
+        breadcrambs,
+      })
+    },
+  })
   const [pageId, ...comments] = breadcrambs
 
   return (
@@ -59,6 +68,13 @@ export function Comment({
           />
         ))}
       </Role>
+      <div>
+        <CommentForm
+          onSubmit={(text) => {
+            mutate({ breadcrambs, comment: text })
+          }}
+        />
+      </div>
     </div>
   )
 }

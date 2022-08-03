@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { getCached } from '~/utils/getWithCache'
+import { getCached, revalidateCached } from '~/utils/getWithCache'
 import {
   getBlock,
   getBlockChildren,
@@ -58,7 +58,7 @@ export const pageRouter = t.router({
   getComment: t.procedure
     .input(
       z.object({
-        breadcrambs: z.array(z.string()).nullish(),
+        breadcrambs: z.array(z.string().nullish()).nullish(),
       }),
     )
     .output(commentType.and(contentType).nullish())
@@ -82,7 +82,9 @@ export const pageRouter = t.router({
             ...comments,
           }
         },
-        `page/${pageId}/comments/${breadcrambs.join('/')}/${commentId}`,
+        `page/${pageId}/comments/${
+          breadcrambs.length ? `${breadcrambs.join('/')}/` : ''
+        }${commentId}`,
         'comment',
       )()
       return res
@@ -137,21 +139,30 @@ export const pageRouter = t.router({
     .input(
       z
         .object({
-          pageId: z.string().nullish(),
+          breadcrambs: z.array(z.string().nullish()).nullish(),
           comment: z.string().nullish(),
         })
         .nullish(),
     )
     .output(contentType.nullish())
     .mutation(async ({ input, ctx }) => {
-      if (!input?.pageId || !ctx.session?.user.id || !input?.comment) {
+      if (!input?.breadcrambs || !ctx.session?.user.id || !input?.comment) {
         return null
       }
-      const res = await postComment(
-        input.pageId,
-        ctx.session.user.id,
-        input.comment,
-      )
+      const {
+        0: pageId,
+        length: breadcrambsLength,
+        [breadcrambsLength - 1]: blockId,
+      } = input.breadcrambs
+      const [, ...breadcrambs] = input.breadcrambs
+      const res = await postComment(blockId, ctx.session.user.id, input.comment)
+      if (res?.comments?.[0]?.id) {
+        await revalidateCached(
+          // @ts-ignore
+          ctx.res,
+          `page/${pageId}/comments/${breadcrambs.join('/')}`,
+        )
+      }
       return res
     }),
 })

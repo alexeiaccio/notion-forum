@@ -30,7 +30,7 @@ function Breadcrumbs() {
         ...((query.comments as string[]) || []),
       ],
     },
-    { enabled: Boolean(query.page) },
+    { enabled: Boolean(query.page), keepPreviousData: true },
   )
   const page = data?.page
 

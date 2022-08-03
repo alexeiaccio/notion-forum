@@ -1,8 +1,9 @@
 import { execSync } from 'child_process'
 import fs from 'fs/promises'
+import type { NextApiResponse } from 'next'
 import path from 'path'
 
-const CACHE_FOLDER_PATH = path.resolve(process.cwd(), '.next/cache')
+const CACHE_FOLDER_PATH = path.resolve(process.cwd(), '.next/localcache')
 
 export async function getWithCacheByUID<InputType, ResultType>({
   fn,
@@ -109,5 +110,31 @@ export function getCached<PageProps, DataType = ValueOf<PageProps>>(
     }
 
     return data
+  }
+}
+
+export async function revalidateCached(
+  res: NextApiResponse<any>,
+  pathname: string,
+) {
+  if (
+    process.env.NODE_ENV === 'development' ||
+    process.env.TEST_NODE_ENV === 'development'
+  ) {
+    try {
+      await fs.stat(CACHE_FOLDER_PATH)
+    } catch {
+      await fs.mkdir(CACHE_FOLDER_PATH)
+    }
+    try {
+      await fs.rm(
+        path.join(CACHE_FOLDER_PATH, `${pathname.replace(/\//g, '_')}`),
+      )
+      console.log(`Revalidate ${pathname.replace(/\//g, '_')} cache`)
+    } catch (e) {
+      console.log('There is not any to revalidate')
+    }
+  } else {
+    res.revalidate(pathname)
   }
 }

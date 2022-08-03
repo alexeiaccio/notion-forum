@@ -1,4 +1,5 @@
 export * from './Button'
 export * from './Card'
 export * from './Comment'
+export * from './CommentForm'
 export * from './Header'

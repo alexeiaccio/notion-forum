@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
-import { Button, Comment } from '~/components'
+import { Button, Comment, CommentForm } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getBlockChildren, getPage, getRelations } from '~/utils/notion/api'
 import { trpc } from '~/utils/trpc'
@@ -34,8 +34,16 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
     },
   )
   const { mutate } = trpc.proxy.page.postComment.useMutation({
-    onSuccess: (res) => {
-      utils.page.getPageProps.invalidate()
+    onSuccess(res) {
+      // TODO optimistic update
+      // utils.page.getPageProps.setData(
+      //   () => ({
+      //     ...data,
+      //     comments: [...(data?.comments || []), ...(res?.comments || [])],
+      //   }),
+      //   { id: page.id },
+      // )
+      utils.page.getPageProps.invalidate({ id: page.id })
     },
   })
 
@@ -77,13 +85,11 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
         ) : null,
       )}
       <div>
-        <Button
-          onClick={() => {
-            mutate({ pageId: data?.id, comment: 'New comment' })
+        <CommentForm
+          onSubmit={(comment) => {
+            mutate({ breadcrambs: [data?.id], comment })
           }}
-        >
-          Add comment
-        </Button>
+        />
       </div>
     </>
   )
