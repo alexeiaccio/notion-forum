@@ -22,6 +22,7 @@ specifiers:
   nano-staged: ^0.8.0
   next: 12.2.4-canary.8
   next-auth: ^4.10.2
+  nodemailer: ^6.7.7
   openid-client: ^5.1.8
   p-throttle: ^5.0.0
   postcss: ^8.4.14
@@ -50,7 +51,8 @@ dependencies:
   cva: /class-variance-authority/0.2.3_typescript@4.7.4
   date-fns: 2.29.1
   next: 12.2.4-canary.8_biqbaboplfbrettd7655fr4n2y
-  next-auth: 4.10.2_biqbaboplfbrettd7655fr4n2y
+  next-auth: 4.10.2_mnimnj2pdeccz5uivmdmoly3tq
+  nodemailer: 6.7.7
   openid-client: 5.1.8
   p-throttle: 5.0.0
   react: 18.2.0
@@ -2154,7 +2156,7 @@ packages:
     resolution: {integrity: sha512-OWND8ei3VtNC9h7V60qff3SVobHr996CTwgxubgyQYEpg290h9J0buyECNNJexkFm5sOajh5G116RYA1c8ZMSw==}
     dev: true
 
-  /next-auth/4.10.2_biqbaboplfbrettd7655fr4n2y:
+  /next-auth/4.10.2_mnimnj2pdeccz5uivmdmoly3tq:
     resolution: {integrity: sha512-9XeP3faA5M3LneNJuzZCrmyR1ONYVH+pNQTozLBlpzXSkVRCgy+PTLAojOGkCo5v5MWcCZNTNHUOQL6gIcYwEQ==}
     engines: {node: ^12.19.0 || ^14.15.0 || ^16.13.0}
     peerDependencies:
@@ -2169,6 +2171,7 @@ packages:
       '@panva/hkdf': 1.0.2
       cookie: 0.4.2
       jose: 4.8.3
+      nodemailer: 6.7.7
       oauth: 0.9.15
       openid-client: 5.1.8
       preact: 10.10.0
@@ -2238,6 +2241,11 @@ packages:
   /node-releases/2.0.6:
     resolution: {integrity: sha512-PiVXnNuFm5+iYkLBNeq5211hvO38y63T0i2KKh2KnUs3RpzJ+JtODFjkD8yjLwnDkTYF1eKXheUwdssR+NRZdg==}
     dev: true
+
+  /nodemailer/6.7.7:
+    resolution: {integrity: sha512-pOLC/s+2I1EXuSqO5Wa34i3kXZG3gugDssH+ZNCevHad65tc8vQlCQpOLaUjopvkRQKm2Cki2aME7fEOPRy3bA==}
+    engines: {node: '>=6.0.0'}
+    dev: false
 
   /normalize-path/3.0.0:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}

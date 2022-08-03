@@ -1,6 +1,6 @@
 import type { NextAuthOptions } from 'next-auth'
 import NextAuth from 'next-auth/next'
-import CredentialsProvider from 'next-auth/providers/credentials'
+import EmailProvider from 'next-auth/providers/email'
 import { env } from '../../../server/env'
 import NotionAdapter from '../../../utils/adapters/notion'
 import { notion, notionVersion } from '../../../utils/notion/client'
@@ -22,19 +22,16 @@ export const authOptions: NextAuthOptions = {
       clientSecret: env.NOTION_CLIENT_SECRET,
       notionVersion,
     }),
-    CredentialsProvider({
-      name: 'Credentials',
-      credentials: {
-        name: {
-          label: 'Name',
-          type: 'text',
-          placeholder: 'Enter your name',
+    EmailProvider({
+      server: {
+        host: env.EMAIL_SERVER_HOST,
+        port: env.EMAIL_SERVER_PORT,
+        auth: {
+          user: env.EMAIL_SERVER_USER,
+          pass: env.EMAIL_SERVER_PASSWORD,
         },
       },
-      async authorize(credentials, _req) {
-        const user = { id: 1, name: credentials?.name ?? 'J Smith' }
-        return user
-      },
+      from: env.EMAIL_FROM,
     }),
   ],
   secret: env.NEXTAUTH_SECRET,

@@ -24,6 +24,7 @@
     "date-fns": "^2.29.1",
     "next": "12.2.4-canary.8",
     "next-auth": "^4.10.2",
+    "nodemailer": "^6.7.7",
     "openid-client": "^5.1.8",
     "p-throttle": "^5.0.0",
     "react": "18.2.0",

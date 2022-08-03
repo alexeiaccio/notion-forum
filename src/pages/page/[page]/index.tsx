@@ -1,8 +1,9 @@
 import { format, parseISO } from 'date-fns'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
-import { Comment } from '~/components'
+import { Button, Comment } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getBlockChildren, getPage, getRelations } from '~/utils/notion/api'
+import { trpc } from '~/utils/trpc'
 
 export async function getStaticPaths() {
   return {
@@ -23,43 +24,67 @@ export async function getStaticProps(
 }
 
 function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
+  const utils = trpc.proxy.useContext()
+  const { data } = trpc.proxy.page.getPageProps.useQuery(
+    {
+      id: page.id,
+    },
+    {
+      initialData: page,
+    },
+  )
+  const { mutate } = trpc.proxy.page.postComment.useMutation({
+    onSuccess: (res) => {
+      utils.page.getPageProps.invalidate()
+    },
+  })
+
   return (
     <>
-      <h1>{page?.title}</h1>
-      {page?.created ? (
-        <time dateTime={format(parseISO(page.created), "yyyy-MM-dd'T'HH:mm")}>
-          {page.created}
+      <h1>{data?.title}</h1>
+      {data?.created ? (
+        <time dateTime={format(parseISO(data.created), "yyyy-MM-dd'T'HH:mm")}>
+          {data.created}
         </time>
       ) : null}
-      {page?.updated ? (
-        <time dateTime={format(parseISO(page.updated), "yyyy-MM-dd'T'HH:mm")}>
-          {page.updated}
+      {data?.updated ? (
+        <time dateTime={format(parseISO(data.updated), "yyyy-MM-dd'T'HH:mm")}>
+          {data.updated}
         </time>
       ) : null}
       <div>
-        {page?.authors?.map((author) => (
+        {data?.authors?.map((author) => (
           <div key={author.id}>{author.name}</div>
         ))}
       </div>
       <div>
-        {page?.tags?.map((tage) => (
+        {data?.tags?.map((tage) => (
           <div key={tage.id}>{tage.name}</div>
         ))}
       </div>
       <article>
-        {page?.content?.map((block) => (
+        {data?.content?.map((block) => (
           <div key={block.id}>{block.rich_text}</div>
         ))}
       </article>
-      {page.comments?.map((comment) =>
-        page.id ? (
+      {data?.comments?.map((comment) =>
+        data.id ? (
           <Comment
             key={comment.id}
-            breadcrambs={[page.id, comment.id]}
+            breadcrambs={[data.id, comment.id]}
             comment={comment}
           />
         ) : null,
       )}
+      <div>
+        <Button
+          onClick={() => {
+            mutate({ pageId: data?.id, comment: 'New comment' })
+          }}
+        >
+          Add comment
+        </Button>
+      </div>
     </>
   )
 }

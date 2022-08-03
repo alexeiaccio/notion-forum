@@ -1,4 +1,5 @@
 import {
+  AppendBlockChildrenParameters,
   BlockObjectResponse,
   GetBlockResponse,
   GetPagePropertyResponse,
@@ -310,7 +311,7 @@ export async function getPagesList(cursor?: string | nil): Promise<PagesList> {
   const pages = await throttledAPICall<U.Merge<QueryDatabaseResponse>>(() =>
     notion.databases.query({
       database_id: uuidFromID(PAGE_DB),
-      sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
+      sorts: [{ timestamp: 'last_edited_time', direction: 'ascending' }],
       page_size: 2,
       start_cursor: cursor || undefined,
     }),
@@ -388,6 +389,63 @@ export async function getBlockChildren(
     id: uuidFromID(id),
     ...parseBlocks(blocks.results as BlockObjectResponse[]),
   }
+}
+
+export async function postComment(
+  blockId: string,
+  authorId: string,
+  content: string,
+): Promise<ContentType | null> {
+  const comment = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
+    () =>
+      notion.blocks.children.append({
+        block_id: uuidFromID(blockId),
+        children: [
+          {
+            type: 'toggle',
+            toggle: {
+              rich_text: [
+                {
+                  type: 'mention',
+                  mention: {
+                    page: {
+                      id: authorId,
+                    },
+                  },
+                },
+                {
+                  type: 'mention',
+                  mention: {
+                    date: {
+                      start: new Date().toISOString(),
+                      end: null,
+                      time_zone: null,
+                    },
+                  },
+                },
+              ],
+              children: [
+                {
+                  type: 'paragraph',
+                  paragraph: {
+                    rich_text: [
+                      {
+                        type: 'text',
+                        text: {
+                          content,
+                        },
+                      },
+                    ],
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      }),
+  )
+  if (!comment) return null
+  return parseBlocks(comment.results as BlockObjectResponse[])
 }
 
 export function parseBlocks(blocks: BlockObjectResponse[]): ContentType {

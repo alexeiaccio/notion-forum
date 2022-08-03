@@ -6,6 +6,7 @@ import {
   getPage,
   getPagesList,
   getRelations,
+  postComment,
 } from '~/utils/notion/api'
 import {
   commentType,
@@ -13,7 +14,7 @@ import {
   pagesList,
   pageType,
 } from '~/utils/notion/types'
-import { t } from '../utils'
+import { authedProcedure, t } from '../utils'
 
 export const pageRouter = t.router({
   infinitePagesList: t.procedure
@@ -41,6 +42,18 @@ export const pageRouter = t.router({
         'page',
       )()
       return res
+    }),
+  getPageProps: t.procedure
+    .input(z.object({ id: z.string().nullish() }).nullish())
+    .output(contentType.and(pageType).nullish())
+    .query(async ({ input }) => {
+      if (!input?.id) return null
+      const [page, blocks] = await Promise.all([
+        getPage(input.id),
+        getBlockChildren(input.id),
+      ])
+      const authors = await getRelations(page?.authors)
+      return { ...page, authors, ...blocks }
     }),
   getComment: t.procedure
     .input(
@@ -119,5 +132,26 @@ export const pageRouter = t.router({
       const [pageProps, ...comments] = result
       const { content: _, comments: __, ...page } = pageProps
       return { page, comments }
+    }),
+  postComment: authedProcedure
+    .input(
+      z
+        .object({
+          pageId: z.string().nullish(),
+          comment: z.string().nullish(),
+        })
+        .nullish(),
+    )
+    .output(contentType.nullish())
+    .mutation(async ({ input, ctx }) => {
+      if (!input?.pageId || !ctx.session?.user.id || !input?.comment) {
+        return null
+      }
+      const res = await postComment(
+        input.pageId,
+        ctx.session.user.id,
+        input.comment,
+      )
+      return res
     }),
 })
