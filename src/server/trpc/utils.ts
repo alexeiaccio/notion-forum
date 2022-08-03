@@ -1,10 +1,6 @@
-import { createSSGHelpers } from '@trpc/react/ssg'
 import { initTRPC, TRPCError } from '@trpc/server'
-import * as trpcNext from '@trpc/server/adapters/next'
-
 import superjson from 'superjson'
-import { Context, createContext } from './context'
-import { appRouter } from './router'
+import { Context } from './context'
 
 export const t = initTRPC<{ ctx: Context }>()({
   transformer: superjson,
@@ -24,12 +20,3 @@ export const authedProcedure = t.procedure.use(({ ctx, next }) => {
     },
   })
 })
-
-export async function createSSG(ctx: trpcNext.CreateNextContextOptions) {
-  const ssg = await createSSGHelpers({
-    router: appRouter,
-    ctx: { session: null },
-    transformer: superjson,
-  })
-  return ssg
-}

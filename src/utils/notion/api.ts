@@ -4,8 +4,8 @@ import {
   GetPagePropertyResponse,
   GetPageResponse,
   ListBlockChildrenResponse,
+  PageObjectResponse,
   QueryDatabaseResponse,
-  RichTextItemResponse,
 } from '@notionhq/client/build/src/api-endpoints'
 import type { Account } from 'next-auth'
 import { VerificationToken } from 'next-auth/adapters'
@@ -13,6 +13,13 @@ import { ProviderType } from 'next-auth/providers'
 import { U } from 'ts-toolbelt'
 import { env } from '../../server/env'
 import { notion } from './client'
+import {
+  ContentType,
+  PagesList,
+  PageType,
+  RawPageType,
+  RelationType,
+} from './types'
 import {
   getFile,
   getProperties,
@@ -26,11 +33,14 @@ import {
 } from './utils'
 
 type QueryDatabaseResult = U.Merge<QueryDatabaseResponse['results'][0]>
+type nil = null | undefined
+type NonNil<T> = T extends nil ? never : T
 
 const USER_DB = env.NOTION_USER_DB_ID
 const ACCOUNT_DB = env.NOTION_ACCOUNT_DB_ID
 const SESSION_DB = env.NOTION_SESSION_DB_ID
 const ROLE_DB = env.NOTION_ROLE_DB_ID
+const PAGE_DB = env.NOTION_PAGE_DB_ID
 
 // #region Auth
 
@@ -296,7 +306,36 @@ export async function getRole(userId: string) {
 
 // #region Page
 
-export async function getPage(id: string | undefined) {
+export async function getPagesList(cursor?: string | nil): Promise<PagesList> {
+  const pages = await throttledAPICall<U.Merge<QueryDatabaseResponse>>(() =>
+    notion.databases.query({
+      database_id: uuidFromID(PAGE_DB),
+      sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
+      page_size: 2,
+      start_cursor: cursor || undefined,
+    }),
+  )
+  const results = await Promise.all(
+    (pages.results as PageObjectResponse[]).map(async (page) => {
+      const pageProps = await getProperties(notion, { page })
+      return {
+        id: uuidFromID(page.id),
+        created: page.created_time,
+        updated: page.last_edited_time,
+        ...parsePage(pageProps),
+      }
+    }),
+  )
+  return {
+    results,
+    hasMore: pages.has_more,
+    nextCursor: pages.next_cursor,
+  }
+}
+
+export async function getPage(
+  id: string | undefined,
+): Promise<RawPageType | null> {
   const page = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
     notion.pages.retrieve({
       page_id: uuidFromID(id),
@@ -314,7 +353,7 @@ export async function getPage(id: string | undefined) {
 
 export function parsePage(
   page: Record<string, GetPagePropertyResponse> | null,
-) {
+): RawPageType | null {
   if (!page) return null
   return {
     title: richTextToPlainText(getProperty(page, 'title', 'title')),
@@ -323,7 +362,9 @@ export function parsePage(
   }
 }
 
-export async function getBlock(id: string | null | undefined) {
+export async function getBlock(
+  id: string | nil,
+): Promise<NonNil<ContentType['comments']>[number] | null> {
   const block = await throttledAPICall<U.Merge<GetBlockResponse>>(() =>
     notion.blocks.retrieve({
       block_id: uuidFromID(id),
@@ -333,7 +374,9 @@ export async function getBlock(id: string | null | undefined) {
   return parseBlocks([block] as BlockObjectResponse[]).comments?.[0] || null
 }
 
-export async function getBlockChildren(id: string | null | undefined) {
+export async function getBlockChildren(
+  id: string | nil,
+): Promise<(ContentType & { id: string }) | null> {
   const blocks = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
     () =>
       notion.blocks.children.list({
@@ -347,15 +390,9 @@ export async function getBlockChildren(id: string | null | undefined) {
   }
 }
 
-export function parseBlocks(blocks: BlockObjectResponse[]) {
-  const content = [] as Array<{
-    id: string
-    rich_text: string
-  }>
-  const comments = [] as Array<{
-    id: string
-    header: { author: string; relation: string; date: string }
-  }>
+export function parseBlocks(blocks: BlockObjectResponse[]): ContentType {
+  const content: ContentType['content'] = []
+  const comments: ContentType['comments'] = []
 
   blocks.forEach((block) => {
     if ('type' in block) {
@@ -382,9 +419,11 @@ export function parseBlocks(blocks: BlockObjectResponse[]) {
   return { content, comments }
 }
 
-export async function getRelations(ids: { id: string }[] = []) {
+export async function getRelations(
+  ids: { id?: string | nil }[] | nil = [],
+): Promise<RelationType[] | null> {
   const relations = await Promise.all(
-    ids.map(({ id }) =>
+    (ids || []).map(({ id }) =>
       throttledAPICall<U.Merge<GetPageResponse>>(() =>
         notion.pages.retrieve({
           page_id: uuidFromID(id),

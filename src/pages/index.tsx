@@ -1,18 +1,47 @@
+import { createSSGHelpers } from '@trpc/react/ssg'
+import { Button } from 'ariakit'
+import superjson from 'superjson'
+import { Card } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
+import { appRouter } from '~/server/trpc/router'
+import { PagesList } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 
-const IndexPage = () => {
-  const page = trpc.proxy.page.getPage.useQuery({
-    id: '118d88b948cd4f05bb120f356143b7a8',
+export async function getStaticProps() {
+  const ssg = await createSSGHelpers({
+    router: appRouter,
+    ctx: { session: null },
+    transformer: superjson,
   })
+  ssg.prefetchInfiniteQuery('page.infinitePagesList')
+  return {
+    props: {
+      trpcState: ssg.dehydrate(),
+    },
+  }
+}
+
+function IndexPage() {
+  // FIXME
+  const { data, hasNextPage, fetchNextPage } =
+    // @ts-ignore
+    trpc.proxy.page.infinitePagesList.useInfiniteQuery(
+      {},
+      { getNextPageParam: (lastPage: PagesList) => lastPage.nextCursor },
+    )
 
   return (
     <>
-      <pre className="w-screen min-w-0">
-        <code className="block w-screen overflow-auto">
-          {JSON.stringify(page, null, 2)}
-        </code>
-      </pre>
+      <ul>
+        {data?.pages?.flatMap((page: PagesList) =>
+          page?.results?.map((item) => <Card key={item.id} item={item} />),
+        )}
+      </ul>
+      {hasNextPage ? (
+        <div>
+          <Button onClick={fetchNextPage}>Load next</Button>
+        </div>
+      ) : null}
     </>
   )
 }

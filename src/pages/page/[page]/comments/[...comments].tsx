@@ -50,37 +50,6 @@ function CommentPage({
 
   return (
     <>
-      <nav>
-        <ul className="flex items-baseline gap-3">
-          <li>
-            <Link href={`/page/${page?.id}`} passHref>
-              <a>{page?.title}</a>
-            </Link>
-          </li>
-          {data?.comments?.map((comment) => (
-            <li key={comment?.id}>
-              <Link
-                href={`/page/${page?.id}/comments/${data?.comments
-                  ?.map((item) => item?.id)
-                  .join('/')}`}
-                passHref
-              >
-                <a className="flex items-baseline gap-2">
-                  <span>{comment?.header?.author}</span>{' '}
-                  {comment?.header?.date ? (
-                    <span className="text-sm">
-                      {format(
-                        parseISO(comment.header.date),
-                        'dd MMMM yyyy, HH:mm',
-                      )}
-                    </span>
-                  ) : null}
-                </a>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </nav>
       <Role role="mark" aria-details={comment.id}>
         <div>{comment.header?.author}</div>
         {comment.header?.date ? (
