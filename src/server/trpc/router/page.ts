@@ -43,17 +43,13 @@ export const pageRouter = t.router({
       )()
       return res
     }),
-  getPageProps: t.procedure
+  getBlockChildren: t.procedure
     .input(z.object({ id: z.string().nullish() }).nullish())
-    .output(contentType.and(pageType).nullish())
+    .output(contentType.nullish())
     .query(async ({ input }) => {
       if (!input?.id) return null
-      const [page, blocks] = await Promise.all([
-        getPage(input.id),
-        getBlockChildren(input.id),
-      ])
-      const authors = await getRelations(page?.authors)
-      return { ...page, authors, ...blocks }
+      const blocks = await getBlockChildren(input.id)
+      return blocks
     }),
   getComment: t.procedure
     .input(

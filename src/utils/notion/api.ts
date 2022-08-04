@@ -312,7 +312,7 @@ export async function getPagesList(cursor?: string | nil): Promise<PagesList> {
     notion.databases.query({
       database_id: uuidFromID(PAGE_DB),
       sorts: [{ timestamp: 'last_edited_time', direction: 'ascending' }],
-      page_size: 2,
+      page_size: 10,
       start_cursor: cursor || undefined,
     }),
   )

@@ -1,8 +1,9 @@
 import { format, parseISO } from 'date-fns'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
-import { Button, Comment, CommentForm } from '~/components'
+import { Comment, CommentForm } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getBlockChildren, getPage, getRelations } from '~/utils/notion/api'
+import { ContentType, PageType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 
 export async function getStaticPaths() {
@@ -25,61 +26,64 @@ export async function getStaticProps(
 
 function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
   const utils = trpc.proxy.useContext()
-  const { data } = trpc.proxy.page.getPageProps.useQuery(
-    {
-      id: page.id,
-    },
-    {
-      initialData: page,
-    },
+  const { data } = trpc.proxy.page.getBlockChildren.useQuery(
+    { id: page.id },
+    { initialData: { content: page.content, comments: page.comments } },
   )
   const { mutate } = trpc.proxy.page.postComment.useMutation({
-    onSuccess(res) {
-      // TODO optimistic update
-      // utils.page.getPageProps.setData(
-      //   () => ({
-      //     ...data,
-      //     comments: [...(data?.comments || []), ...(res?.comments || [])],
-      //   }),
-      //   { id: page.id },
-      // )
-      utils.page.getPageProps.invalidate({ id: page.id })
+    onSuccess(nextData) {
+      utils.page.getBlockChildren.setData(
+        (
+          prevData: (ContentType & PageType) | null,
+        ): (ContentType & PageType) | null => {
+          if (!prevData) return null
+          return {
+            ...prevData,
+            comments: [
+              ...(prevData.comments || []),
+              ...(nextData?.comments || []),
+            ],
+          }
+        },
+        { id: page.id },
+      )
+      utils.page.getBlockChildren.invalidate({ id: page.id })
     },
   })
 
   return (
     <>
-      <h1>{data?.title}</h1>
-      {data?.created ? (
-        <time dateTime={format(parseISO(data.created), "yyyy-MM-dd'T'HH:mm")}>
-          {data.created}
+      <h1>{page?.title}</h1>
+      {page?.created ? (
+        <time dateTime={format(parseISO(page.created), "yyyy-MM-dd'T'HH:mm")}>
+          {page.created}
         </time>
       ) : null}
-      {data?.updated ? (
-        <time dateTime={format(parseISO(data.updated), "yyyy-MM-dd'T'HH:mm")}>
-          {data.updated}
+      {page?.updated ? (
+        <time dateTime={format(parseISO(page.updated), "yyyy-MM-dd'T'HH:mm")}>
+          {page.updated}
         </time>
       ) : null}
       <div>
-        {data?.authors?.map((author) => (
+        {page?.authors?.map((author) => (
           <div key={author.id}>{author.name}</div>
         ))}
       </div>
       <div>
-        {data?.tags?.map((tage) => (
+        {page?.tags?.map((tage) => (
           <div key={tage.id}>{tage.name}</div>
         ))}
       </div>
       <article>
-        {data?.content?.map((block) => (
+        {page?.content?.map((block) => (
           <div key={block.id}>{block.rich_text}</div>
         ))}
       </article>
       {data?.comments?.map((comment) =>
-        data.id ? (
+        page.id ? (
           <Comment
             key={comment.id}
-            breadcrambs={[data.id, comment.id]}
+            breadcrambs={[page.id, comment.id]}
             comment={comment}
           />
         ) : null,
@@ -87,7 +91,7 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
       <div>
         <CommentForm
           onSubmit={(comment) => {
-            mutate({ breadcrambs: [data?.id], comment })
+            mutate({ breadcrambs: [page?.id], comment })
           }}
         />
       </div>

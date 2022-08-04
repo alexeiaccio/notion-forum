@@ -40,13 +40,10 @@ function CommentPage({
   breadcrambs,
   comment,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const { data } = trpc.proxy.page.getBreadcrambs.useQuery(
-    {
-      breadcrambs: [pageId, ...(breadcrambs || [])],
-    },
-    { enabled: Boolean(pageId) },
+  const { data } = trpc.proxy.page.getBlockChildren.useQuery(
+    { id: comment.id },
+    { initialData: { content: comment.content, comments: comment.comments } },
   )
-  const page = data?.page
 
   return (
     <>
@@ -67,7 +64,7 @@ function CommentPage({
         {comment.content?.map((block) => (
           <div key={block.id}>{block.rich_text}</div>
         ))}
-        {comment.comments?.map((comment) => (
+        {data?.comments?.map((comment) => (
           <Comment
             key={comment.id}
             breadcrambs={[pageId, ...(breadcrambs || []), comment.id]}

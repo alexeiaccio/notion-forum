@@ -2,6 +2,7 @@ import { Role } from 'ariakit'
 import { format, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
+import { ContentType, PageType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 import { CommentForm } from '../CommentForm'
 
@@ -25,7 +26,22 @@ export function Comment({
     { enabled: breadcrambs.length <= 4 },
   )
   const { mutate } = trpc.proxy.page.postComment.useMutation({
-    onSuccess(res) {
+    onSuccess(nextData) {
+      utils.page.getBlockChildren.setData(
+        (
+          prevData: (ContentType & PageType) | null,
+        ): (ContentType & PageType) | null => {
+          if (!prevData) return null
+          return {
+            ...prevData,
+            comments: [
+              ...(prevData.comments || []),
+              ...(nextData?.comments || []),
+            ],
+          }
+        },
+        { id: comment.id },
+      )
       utils.page.getComment.invalidate({
         breadcrambs,
       })
