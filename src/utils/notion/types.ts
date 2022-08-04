@@ -38,6 +38,12 @@ export const textType = z.object({
   annotations: annotationType,
 })
 export type TextType = z.infer<typeof textType>
+export const equationType = z.object({
+  type: z.literal('equation'),
+  equation: z.string(),
+  annotations: annotationType,
+})
+export type EquationType = z.infer<typeof equationType>
 export const mentionType = z.object({
   type: z.literal('mention'),
   text: z.string(),
@@ -54,7 +60,7 @@ export const mentionType = z.object({
   annotations: annotationType,
 })
 export type MentionType = z.infer<typeof mentionType>
-export const richTextType = z.union([textType, mentionType])
+export const richTextType = z.union([textType, mentionType, equationType])
 export type RichTextType = z.infer<typeof richTextType>
 
 export const rawPageType = z.object({

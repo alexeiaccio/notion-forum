@@ -122,6 +122,13 @@ export function parseRichText(
         } as MentionType)
       }
     }
+    if (item.type === 'equation') {
+      res.push({
+        type: 'equation',
+        equation: item.equation.expression,
+        annotations: item.annotations,
+      })
+    }
     return res
   }, [])
 }

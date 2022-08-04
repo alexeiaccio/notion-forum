@@ -1,5 +1,4 @@
 import {
-  AppendBlockChildrenParameters,
   BlockObjectResponse,
   GetBlockResponse,
   GetPagePropertyResponse,
@@ -17,7 +16,6 @@ import { notion } from './client'
 import {
   ContentAndCommentsType,
   PagesList,
-  PageType,
   RawPageType,
   RelationType,
 } from './types'
@@ -367,7 +365,7 @@ export async function getBlock(
 
 export async function getBlockChildren(
   id: string | nil,
-): Promise<(ContentAndCommentsType & { id: string }) | null> {
+): Promise<ContentAndCommentsType | null> {
   const blocks = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
     () =>
       notion.blocks.children.list({
@@ -375,10 +373,7 @@ export async function getBlockChildren(
       }),
   )
   if (!id || !blocks) return null
-  return {
-    id: uuidFromID(id),
-    ...parseBlocks(blocks.results as BlockObjectResponse[]),
-  }
+  return parseBlocks(blocks.results as BlockObjectResponse[])
 }
 
 export async function postComment(

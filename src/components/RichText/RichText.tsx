@@ -1,6 +1,7 @@
 import { cva } from 'cva'
 import { twMerge } from 'tailwind-merge'
 import type { ColorType, ContentType, RichTextType } from '~/utils/notion/types'
+import { MathJax, MathJaxContext } from 'better-react-mathjax'
 
 export function RichText({
   content,
@@ -80,7 +81,7 @@ function RichTextRenederer({
 }) {
   if (!textMap) return null
   return (
-    <>
+    <MathJaxContext>
       {textMap.map((content, idx) => {
         if (content.type === 'text') {
           if (content.annotations.code) {
@@ -117,7 +118,15 @@ function RichTextRenederer({
             </span>
           )
         }
+        if (content.type === 'equation') {
+          return (
+            <MathJax key={idx} inline>{`\\(${content.equation.replace(
+              /\\/,
+              '\\',
+            )}\\)`}</MathJax>
+          )
+        }
       })}
-    </>
+    </MathJaxContext>
   )
 }
