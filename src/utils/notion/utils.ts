@@ -7,6 +7,7 @@ import type {
 import { parseISO } from 'date-fns'
 import pThrottle from 'p-throttle'
 import type { U } from 'ts-toolbelt'
+import { MentionType, RichTextType } from './types'
 
 export const throttle = pThrottle({
   limit: 10,
@@ -85,6 +86,44 @@ export function richTextBlockToPlainText(
   return (richText || [])
     ?.map((text) => richTextToPlainText(text) || '')
     .join('')
+}
+
+export function parseRichText(
+  richText: RichTextItemResponse[] | null | undefined,
+): RichTextType[] {
+  return (richText || [])?.reduce<RichTextType[]>((res, item) => {
+    if (item.type === 'text') {
+      res.push({
+        type: 'text',
+        text: item.text.content,
+        link: item.text.link?.url || null,
+        annotations: item.annotations,
+      })
+    }
+    if (item.type === 'mention') {
+      const mention =
+        item.mention.type === 'date'
+          ? {
+              type: 'date',
+              date: item.mention.date,
+            }
+          : item.mention.type === 'page'
+          ? {
+              type: 'page',
+              page: item.mention.page.id,
+            }
+          : null
+      if (mention) {
+        res.push({
+          type: 'mention',
+          mention,
+          text: item.plain_text,
+          annotations: item.annotations,
+        } as MentionType)
+      }
+    }
+    return res
+  }, [])
 }
 
 export function parseMention(

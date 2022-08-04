@@ -10,6 +10,7 @@ import {
 } from '~/utils/notion/api'
 import {
   commentType,
+  contentAndCommentsType,
   contentType,
   pagesList,
   pageType,
@@ -26,7 +27,7 @@ export const pageRouter = t.router({
     }),
   getPage: t.procedure
     .input(z.object({ id: z.string().nullish() }).nullish())
-    .output(contentType.and(pageType).nullish())
+    .output(contentAndCommentsType.and(pageType).nullish())
     .query(async ({ input }) => {
       if (!input?.id) return null
       const res = await getCached(
@@ -45,7 +46,7 @@ export const pageRouter = t.router({
     }),
   getBlockChildren: t.procedure
     .input(z.object({ id: z.string().nullish() }).nullish())
-    .output(contentType.nullish())
+    .output(contentAndCommentsType.nullish())
     .query(async ({ input }) => {
       if (!input?.id) return null
       const blocks = await getBlockChildren(input.id)
@@ -57,7 +58,7 @@ export const pageRouter = t.router({
         breadcrambs: z.array(z.string().nullish()).nullish(),
       }),
     )
-    .output(commentType.and(contentType).nullish())
+    .output(commentType.and(contentAndCommentsType).nullish())
     .query(async ({ input }) => {
       if (!input?.breadcrambs) return null
       const {
@@ -140,7 +141,7 @@ export const pageRouter = t.router({
         })
         .nullish(),
     )
-    .output(contentType.nullish())
+    .output(contentAndCommentsType.nullish())
     .mutation(async ({ input, ctx }) => {
       if (!input?.breadcrambs || !ctx.session?.user.id || !input?.comment) {
         return null

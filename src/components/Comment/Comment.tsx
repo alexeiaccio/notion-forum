@@ -2,9 +2,10 @@ import { Role } from 'ariakit'
 import { format, parseISO } from 'date-fns'
 import Link from 'next/link'
 import { twMerge } from 'tailwind-merge'
-import { ContentType, PageType } from '~/utils/notion/types'
+import { ContentAndCommentsType, PageType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 import { CommentForm } from '../CommentForm'
+import { RichText } from '../RichText'
 
 export function Comment({
   breadcrambs,
@@ -29,8 +30,8 @@ export function Comment({
     onSuccess(nextData) {
       utils.page.getBlockChildren.setData(
         (
-          prevData: (ContentType & PageType) | null,
-        ): (ContentType & PageType) | null => {
+          prevData: (ContentAndCommentsType & PageType) | null,
+        ): (ContentAndCommentsType & PageType) | null => {
           if (!prevData) return null
           return {
             ...prevData,
@@ -74,7 +75,7 @@ export function Comment({
       </Role>
       <Role role="comment" id={comment.id} data-author={comment.header?.author}>
         {data?.content?.map((block) => (
-          <div key={block.id}>{block.rich_text}</div>
+          <RichText key={block.id} content={block} />
         ))}
         {data?.comments?.map((comment) => (
           <Comment

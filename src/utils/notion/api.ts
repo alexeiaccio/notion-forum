@@ -15,7 +15,7 @@ import { U } from 'ts-toolbelt'
 import { env } from '../../server/env'
 import { notion } from './client'
 import {
-  ContentType,
+  ContentAndCommentsType,
   PagesList,
   PageType,
   RawPageType,
@@ -27,6 +27,7 @@ import {
   getPropertiesList,
   getProperty,
   parseMention,
+  parseRichText,
   richTextBlockToPlainText,
   richTextToPlainText,
   throttledAPICall,
@@ -352,20 +353,9 @@ export async function getPage(
   }
 }
 
-export function parsePage(
-  page: Record<string, GetPagePropertyResponse> | null,
-): RawPageType | null {
-  if (!page) return null
-  return {
-    title: richTextToPlainText(getProperty(page, 'title', 'title')),
-    authors: getPropertiesList(page, 'authors', 'relation'),
-    tags: getProperty(page, 'tags', 'multi_select'),
-  }
-}
-
 export async function getBlock(
   id: string | nil,
-): Promise<NonNil<ContentType['comments']>[number] | null> {
+): Promise<NonNil<ContentAndCommentsType['comments']>[number] | null> {
   const block = await throttledAPICall<U.Merge<GetBlockResponse>>(() =>
     notion.blocks.retrieve({
       block_id: uuidFromID(id),
@@ -377,7 +367,7 @@ export async function getBlock(
 
 export async function getBlockChildren(
   id: string | nil,
-): Promise<(ContentType & { id: string }) | null> {
+): Promise<(ContentAndCommentsType & { id: string }) | null> {
   const blocks = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
     () =>
       notion.blocks.children.list({
@@ -395,7 +385,7 @@ export async function postComment(
   blockId: string | nil,
   authorId: string,
   content: string,
-): Promise<ContentType | null> {
+): Promise<ContentAndCommentsType | null> {
   const comment = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
     () =>
       notion.blocks.children.append({
@@ -448,9 +438,26 @@ export async function postComment(
   return parseBlocks(comment.results as BlockObjectResponse[])
 }
 
-export function parseBlocks(blocks: BlockObjectResponse[]): ContentType {
-  const content: ContentType['content'] = []
-  const comments: ContentType['comments'] = []
+// #endregion
+
+// #region Parsers
+
+export function parsePage(
+  page: Record<string, GetPagePropertyResponse> | null,
+): RawPageType | null {
+  if (!page) return null
+  return {
+    title: richTextToPlainText(getProperty(page, 'title', 'title')),
+    authors: getPropertiesList(page, 'authors', 'relation'),
+    tags: getProperty(page, 'tags', 'multi_select'),
+  }
+}
+
+export function parseBlocks(
+  blocks: BlockObjectResponse[],
+): ContentAndCommentsType {
+  const content: ContentAndCommentsType['content'] = []
+  const comments: ContentAndCommentsType['comments'] = []
 
   blocks.forEach((block) => {
     if ('type' in block) {
@@ -458,7 +465,45 @@ export function parseBlocks(blocks: BlockObjectResponse[]): ContentType {
         case 'paragraph':
           content.push({
             id: uuidFromID(block.id),
-            rich_text: richTextBlockToPlainText(block.paragraph.rich_text),
+            type: 'paragraph',
+            created_time: block.created_time,
+            edited_time: block.last_edited_time,
+            rich_text: parseRichText(block.paragraph.rich_text),
+            plain_text: richTextBlockToPlainText(block.paragraph.rich_text),
+            color: block.paragraph.color,
+          })
+          break
+        case 'heading_1':
+          content.push({
+            id: uuidFromID(block.id),
+            type: 'h1',
+            created_time: block.created_time,
+            edited_time: block.last_edited_time,
+            rich_text: parseRichText(block.heading_1.rich_text),
+            plain_text: richTextBlockToPlainText(block.heading_1.rich_text),
+            color: block.heading_1.color,
+          })
+          break
+        case 'heading_2':
+          content.push({
+            id: uuidFromID(block.id),
+            type: 'h2',
+            created_time: block.created_time,
+            edited_time: block.last_edited_time,
+            rich_text: parseRichText(block.heading_2.rich_text),
+            plain_text: richTextBlockToPlainText(block.heading_2.rich_text),
+            color: block.heading_2.color,
+          })
+          break
+        case 'heading_3':
+          content.push({
+            id: uuidFromID(block.id),
+            type: 'h3',
+            created_time: block.created_time,
+            edited_time: block.last_edited_time,
+            rich_text: parseRichText(block.heading_3.rich_text),
+            plain_text: richTextBlockToPlainText(block.heading_3.rich_text),
+            color: block.heading_3.color,
           })
           break
         case 'toggle':

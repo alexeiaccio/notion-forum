@@ -1,9 +1,9 @@
 import { format, parseISO } from 'date-fns'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
-import { Comment, CommentForm } from '~/components'
+import { Comment, CommentForm, RichText } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getBlockChildren, getPage, getRelations } from '~/utils/notion/api'
-import { ContentType, PageType } from '~/utils/notion/types'
+import { ContentAndCommentsType, PageType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 
 export async function getStaticPaths() {
@@ -34,8 +34,8 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
     onSuccess(nextData) {
       utils.page.getBlockChildren.setData(
         (
-          prevData: (ContentType & PageType) | null,
-        ): (ContentType & PageType) | null => {
+          prevData: (ContentAndCommentsType & PageType) | null,
+        ): (ContentAndCommentsType & PageType) | null => {
           if (!prevData) return null
           return {
             ...prevData,
@@ -76,7 +76,7 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
       </div>
       <article>
         {page?.content?.map((block) => (
-          <div key={block.id}>{block.rich_text}</div>
+          <RichText key={block.id} content={block} />
         ))}
       </article>
       {data?.comments?.map((comment) =>

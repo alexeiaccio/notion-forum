@@ -5,29 +5,6 @@ import path from 'path'
 
 const CACHE_FOLDER_PATH = path.resolve(process.cwd(), '.next/localcache')
 
-export async function getWithCacheByUID<InputType, ResultType>({
-  fn,
-  find,
-  uid,
-  skipCache,
-}: {
-  fn: (skipCache?: boolean) => Promise<InputType>
-  find: (item: InputType) => ResultType | null
-  uid: string | undefined
-  skipCache?: boolean
-}): Promise<ResultType | null> {
-  if (!uid) return null
-
-  const xs = await fn(skipCache)
-  let x = find(xs)
-
-  if (!x && !skipCache) {
-    x = await getWithCacheByUID({ fn, find, uid, skipCache: true })
-  }
-
-  return x
-}
-
 type ValueOf<T> = T[keyof T]
 
 export function getCached<PageProps, DataType = ValueOf<PageProps>>(
