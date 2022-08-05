@@ -2,7 +2,7 @@ import { Role } from 'ariakit'
 import { format, parseISO } from 'date-fns'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
 import Link from 'next/link'
-import { Comment } from '~/components'
+import { Comment, RichText } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getBlock, getBlockChildren } from '~/utils/notion/api'
 import { trpc } from '~/utils/trpc'
@@ -61,8 +61,8 @@ function CommentPage({
         ) : null}
       </Role>
       <Role role="comment" id={comment.id} data-author={comment.header?.author}>
-        {comment.content?.map((block) => (
-          <div key={block.id}>{block.rich_text}</div>
+        {comment?.content?.map((block) => (
+          <RichText key={block.id} content={block} />
         ))}
         {data?.comments?.map((comment) => (
           <Comment

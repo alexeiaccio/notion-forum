@@ -105,7 +105,7 @@ export function parseRichText(
         item.mention.type === 'date'
           ? {
               type: 'date',
-              date: item.mention.date,
+              date: item.mention.date.start,
             }
           : item.mention.type === 'page'
           ? {

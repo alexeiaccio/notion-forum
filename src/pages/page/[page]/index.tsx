@@ -1,6 +1,6 @@
 import { format, parseISO } from 'date-fns'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
-import { Comment, CommentForm, RichText } from '~/components'
+import { Comment, CommentForm, RichText, Timestamp } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getBlockChildren, getPage, getRelations } from '~/utils/notion/api'
 import { ContentAndCommentsType, PageType } from '~/utils/notion/types'
@@ -54,16 +54,13 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
   return (
     <>
       <h1>{page?.title}</h1>
-      {page?.created ? (
-        <time dateTime={format(parseISO(page.created), "yyyy-MM-dd'T'HH:mm")}>
-          {page.created}
-        </time>
-      ) : null}
-      {page?.updated ? (
-        <time dateTime={format(parseISO(page.updated), "yyyy-MM-dd'T'HH:mm")}>
-          {page.updated}
-        </time>
-      ) : null}
+      <small>
+        Created at: <Timestamp>{page.created}</Timestamp>
+      </small>
+      {'. '}
+      <small>
+        Updated at: <Timestamp>{page.updated}</Timestamp>
+      </small>
       <div>
         {page?.authors?.map((author) => (
           <div key={author.id}>{author.name}</div>

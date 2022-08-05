@@ -14,6 +14,7 @@ import {
   contentType,
   pagesList,
   pageType,
+  relationType,
 } from '~/utils/notion/types'
 import { authedProcedure, t } from '../utils'
 
@@ -160,6 +161,17 @@ export const pageRouter = t.router({
           `page/${pageId}/comments/${breadcrambs.join('/')}`,
         )
       }
+      return res
+    }),
+  getRelations: t.procedure
+    .input(
+      z.object({
+        ids: z.array(z.object({ id: z.string().nullish() })).nullish(),
+      }),
+    )
+    .output(z.array(relationType.nullish()).nullish())
+    .query(async ({ input }) => {
+      const res = await getRelations(input.ids)
       return res
     }),
 })

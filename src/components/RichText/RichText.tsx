@@ -1,7 +1,15 @@
 import { cva } from 'cva'
 import { twMerge } from 'tailwind-merge'
-import type { ColorType, ContentType, RichTextType } from '~/utils/notion/types'
+import type {
+  ColorType,
+  ContentType,
+  MentionType,
+  RichTextType,
+} from '~/utils/notion/types'
 import { MathJax, MathJaxContext } from 'better-react-mathjax'
+import Link from 'next/link'
+import { trpc } from '~/utils/trpc'
+import { Timestamp } from '../Timestamp'
 
 export function RichText({
   content,
@@ -41,9 +49,6 @@ export function RichText({
 
 const richTextStyles = cva('', {
   variants: {
-    code: {
-      code: 'text-amber-500 bg-slate-700 rounded-sm px-1.5 py-0.5',
-    },
     color: {
       default: 'text-slate-700',
       blue: 'text-blue-500',
@@ -65,10 +70,14 @@ const richTextStyles = cva('', {
       red_background: 'bg-red-700',
       yellow_background: 'bg-yellow-700',
     } as Record<ColorType, string>,
+    type: {
+      code: 'text-amber-500 bg-slate-700 rounded-sm px-1.5 py-0.5',
+      link: 'underline text-blue-500',
+      page: 'underline font-semibold text-slate-500',
+      user: 'font-semibold text-slate-600',
+      date: 'text-slate-600',
+    },
   },
-  compoundVariants: [
-    { color: 'default', code: 'code', class: 'text-amber-500' },
-  ],
   defaultVariants: {
     color: 'default',
   },
@@ -84,13 +93,57 @@ function RichTextRenederer({
     <MathJaxContext>
       {textMap.map((content, idx) => {
         if (content.type === 'text') {
+          if (content.link) {
+            console.log(content.link)
+            if (content.link.startsWith('/')) {
+              return (
+                <Link key={idx} href={`/page${content.link}`} passHref>
+                  <a
+                    className={twMerge(
+                      richTextStyles({
+                        type: 'page',
+                        color: content.annotations.color,
+                      }),
+                      content.annotations.bold && 'font-bold',
+                      content.annotations.italic && 'italic',
+                      content.annotations.strikethrough && 'line-through',
+                      content.annotations.underline && 'underline',
+                    )}
+                  >
+                    {content.text}
+                  </a>
+                </Link>
+              )
+            } else {
+              return (
+                <a
+                  key={idx}
+                  href={content.link}
+                  className={twMerge(
+                    richTextStyles({
+                      type: 'link',
+                      color: content.annotations.color,
+                    }),
+                    content.annotations.bold && 'font-bold',
+                    content.annotations.italic && 'italic',
+                    content.annotations.strikethrough && 'line-through',
+                    content.annotations.underline && 'underline',
+                  )}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {content.text}
+                </a>
+              )
+            }
+          }
           if (content.annotations.code) {
             return (
               <code
                 key={idx}
                 className={twMerge(
                   richTextStyles({
-                    code: 'code',
+                    type: 'code',
                     color: content.annotations.color,
                   }),
                   content.annotations.bold && 'font-bold',
@@ -126,7 +179,58 @@ function RichTextRenederer({
             )}\\)`}</MathJax>
           )
         }
+        if (content.type === 'mention') {
+          if (content.mention.type === 'page') {
+            return <UserRelationLink key={idx} content={content} />
+          }
+          if (content.mention.type === 'date') {
+            return (
+              <Timestamp
+                key={idx}
+                className={twMerge(
+                  richTextStyles({
+                    type: 'date',
+                    color: content.annotations.color,
+                  }),
+                  content.annotations.bold && 'font-bold',
+                  content.annotations.italic && 'italic',
+                  content.annotations.strikethrough && 'line-through',
+                  content.annotations.underline && 'underline',
+                )}
+              >
+                {content.mention.date}
+              </Timestamp>
+            )
+          }
+        }
+        return null
       })}
     </MathJaxContext>
+  )
+}
+
+function UserRelationLink({ content }: { content: MentionType }) {
+  if (content.mention.type !== 'page' || !content?.mention?.page) return null
+  const { data } = trpc.proxy.page.getRelations.useQuery({
+    ids: [{ id: content.mention.page }],
+  })
+  return (
+    <Link href={`/user/${content.mention.page}`} passHref>
+      <a
+        className={twMerge(
+          richTextStyles({
+            type: 'user',
+            color: content.annotations.color,
+          }),
+          content.annotations.bold && 'font-bold',
+          content.annotations.italic && 'italic',
+          content.annotations.strikethrough && 'line-through',
+          content.annotations.underline && 'underline',
+        )}
+      >
+        {'@'}
+        {data?.[0]?.name}
+      </a>
+    </Link>
   )
 }
