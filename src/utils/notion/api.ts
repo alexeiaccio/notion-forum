@@ -1,4 +1,5 @@
 import {
+  AppendBlockChildrenParameters,
   BlockObjectResponse,
   GetBlockResponse,
   GetPagePropertyResponse,
@@ -14,6 +15,7 @@ import { U } from 'ts-toolbelt'
 import { env } from '../../server/env'
 import { notion } from './client'
 import {
+  ChildrenType,
   ContentAndCommentsType,
   PagesList,
   RawPageType,
@@ -379,7 +381,7 @@ export async function getBlockChildren(
 export async function postComment(
   blockId: string | nil,
   authorId: string,
-  content: string,
+  children: ChildrenType,
 ): Promise<ContentAndCommentsType | null> {
   const comment = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
     () =>
@@ -409,21 +411,7 @@ export async function postComment(
                   },
                 },
               ],
-              children: [
-                {
-                  type: 'paragraph',
-                  paragraph: {
-                    rich_text: [
-                      {
-                        type: 'text',
-                        text: {
-                          content,
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
+              children,
             },
           },
         ],

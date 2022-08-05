@@ -1,5 +1,7 @@
 import { z } from 'zod'
 
+// #region Shared types
+
 export const colorType = z.union([
   z.literal('default'),
   z.literal('gray'),
@@ -21,29 +23,41 @@ export const colorType = z.union([
   z.literal('pink_background'),
   z.literal('red_background'),
 ])
+
 export type ColorType = z.infer<typeof colorType>
+
 export const annotationType = z.object({
-  bold: z.boolean(),
-  italic: z.boolean(),
-  strikethrough: z.boolean(),
-  underline: z.boolean(),
-  code: z.boolean(),
-  color: colorType,
+  bold: z.boolean().optional(),
+  italic: z.boolean().optional(),
+  strikethrough: z.boolean().optional(),
+  underline: z.boolean().optional(),
+  code: z.boolean().optional(),
+  color: colorType.optional(),
 })
+
 export type AnnotationType = z.infer<typeof annotationType>
+
+// #endregion
+
+// #region Inner types
+
 export const textType = z.object({
   type: z.literal('text'),
   text: z.string(),
   link: z.string().nullish(),
   annotations: annotationType,
 })
+
 export type TextType = z.infer<typeof textType>
+
 export const equationType = z.object({
   type: z.literal('equation'),
   equation: z.string(),
   annotations: annotationType,
 })
+
 export type EquationType = z.infer<typeof equationType>
+
 export const mentionType = z.object({
   type: z.literal('mention'),
   text: z.string(),
@@ -59,8 +73,11 @@ export const mentionType = z.object({
   ]),
   annotations: annotationType,
 })
+
 export type MentionType = z.infer<typeof mentionType>
+
 export const richTextType = z.union([textType, mentionType, equationType])
+
 export type RichTextType = z.infer<typeof richTextType>
 
 export const rawPageType = z.object({
@@ -191,3 +208,48 @@ export const contentAndCommentsType = z.object({
 })
 
 export type ContentAndCommentsType = z.infer<typeof contentAndCommentsType>
+
+// #endregion
+
+// #region Notion API
+
+const richTextRequestSchema = z.object({
+  text: z.object({
+    content: z.string(),
+    link: z
+      .object({
+        url: z.string(),
+      })
+      .optional()
+      .nullable(),
+  }),
+  type: z.literal('text').optional(),
+  annotations: annotationType.optional(),
+})
+
+export type RichTextRequestSchema = z.infer<typeof richTextRequestSchema>
+
+export const ChildrenType = z.array(
+  z.union([
+    z.object({
+      heading_3: z.object({
+        rich_text: z.array(richTextRequestSchema),
+        color: colorType.optional(),
+      }),
+      type: z.literal('heading_3').optional(),
+      object: z.literal('block').optional(),
+    }),
+    z.object({
+      paragraph: z.object({
+        rich_text: z.array(richTextRequestSchema),
+        color: colorType.optional(),
+      }),
+      type: z.literal('paragraph').optional(),
+      object: z.literal('block').optional(),
+    }),
+  ]),
+)
+
+export type ChildrenType = z.infer<typeof ChildrenType>
+
+// #endregion

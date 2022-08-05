@@ -1,4 +1,12 @@
+import type { SerializedEditorState } from 'lexical'
+import dynamic from 'next/dynamic'
 import { Button, Header } from '~/components'
+import { ChildrenType } from '~/utils/notion/types'
+
+const RichTextEditor = dynamic(
+  () => import('../components/RichTextEditor/RichTextEditor'),
+  { ssr: false },
+)
 
 export async function getStaticProps() {
   if (process.env.NODE_ENV === 'production') {
@@ -13,6 +21,11 @@ export async function getStaticProps() {
 }
 
 function UIKitPage() {
+  function handleChange(state: string) {
+    const parsedState = JSON.parse(state) as ChildrenType
+    console.log(parsedState)
+  }
+
   return (
     <>
       <Header />
@@ -25,6 +38,18 @@ function UIKitPage() {
             <Button>Button</Button>
             <Button>Button</Button>
             <Button>Button</Button>
+          </div>
+        </section>
+        <section className="grid gap-4">
+          <h2 className="text-xl font-semibold text-slate-700">
+            Rich Text Editor
+          </h2>
+          <div>
+            <RichTextEditor
+              isRichText
+              onChange={handleChange}
+              placeholder="Placeholder"
+            />
           </div>
         </section>
       </main>
