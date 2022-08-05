@@ -2,7 +2,7 @@ import { Role } from 'ariakit'
 import { format, parseISO } from 'date-fns'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
 import Link from 'next/link'
-import { Comment, RichText } from '~/components'
+import { Comment, RichText, Timestamp } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getBlock, getBlockChildren } from '~/utils/notion/api'
 import { trpc } from '~/utils/trpc'
@@ -48,16 +48,12 @@ function CommentPage({
   return (
     <>
       <Role role="mark" aria-details={comment.id}>
-        <div>{comment.header?.author}</div>
+        <div>
+          {'@'}
+          {comment.header?.author}
+        </div>
         {comment.header?.date ? (
-          <time
-            dateTime={format(
-              parseISO(comment.header.date),
-              "yyyy-MM-dd'T'HH:mm",
-            )}
-          >
-            {format(parseISO(comment.header.date), 'dd MMMM yyyy, HH:mm')}
-          </time>
+          <Timestamp>{comment.header.date}</Timestamp>
         ) : null}
       </Role>
       <Role role="comment" id={comment.id} data-author={comment.header?.author}>

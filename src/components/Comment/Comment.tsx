@@ -6,6 +6,7 @@ import { ContentAndCommentsType, PageType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 import { CommentForm } from '../CommentForm'
 import { RichText } from '../RichText'
+import { Timestamp } from '../Timestamp'
 
 export function Comment({
   breadcrambs,
@@ -57,17 +58,12 @@ export function Comment({
         aria-details={comment.id}
         className="flex items-baseline gap-2"
       >
-        <div>{comment.header?.author}</div>
+        <div>
+          {'@'}
+          {comment.header?.author}
+        </div>
         {comment.header?.date ? (
-          <time
-            className="text-sm"
-            dateTime={format(
-              parseISO(comment.header.date),
-              "yyyy-MM-dd'T'HH:mm",
-            )}
-          >
-            {format(parseISO(comment.header.date), 'dd MMMM yyyy, HH:mm')}
-          </time>
+          <Timestamp className="text-sm">{comment.header.date}</Timestamp>
         ) : null}
         <Link href={`/page/${pageId}/comments/${comments.join('/')}`} passHref>
           <a className="text-xs">Open</a>

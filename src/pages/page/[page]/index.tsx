@@ -54,21 +54,25 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
   return (
     <>
       <h1>{page?.title}</h1>
-      <small>
-        Created at: <Timestamp>{page.created}</Timestamp>
-      </small>
-      {'. '}
-      <small>
-        Updated at: <Timestamp>{page.updated}</Timestamp>
-      </small>
-      <div>
+      <div className="flex items-baseline gap-2">
+        <small>
+          Created at: <Timestamp>{page.created}</Timestamp>
+        </small>
+        <small>
+          Updated at: <Timestamp>{page.updated}</Timestamp>
+        </small>
+      </div>
+      <div className="flex items-baseline gap-2">
         {page?.authors?.map((author) => (
-          <div key={author.id}>{author.name}</div>
+          <span key={author.id}>
+            {'@'}
+            {author.name}
+          </span>
         ))}
       </div>
-      <div>
+      <div className="flex items-baseline gap-2">
         {page?.tags?.map((tage) => (
-          <div key={tage.id}>{tage.name}</div>
+          <span key={tage.id}>{tage.name}</span>
         ))}
       </div>
       <article>
