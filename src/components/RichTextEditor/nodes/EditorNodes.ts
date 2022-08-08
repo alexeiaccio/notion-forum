@@ -12,7 +12,7 @@ import type { Klass, LexicalNode } from 'lexical'
 import { EquationNode } from './EquationNode'
 import { ImageNode } from './ImageNode'
 
-const PlaygroundNodes: Array<Klass<LexicalNode>> = [
+const EditorNodes: Array<Klass<LexicalNode>> = [
   AutoLinkNode,
   CodeHighlightNode,
   CodeNode,
@@ -32,4 +32,4 @@ const PlaygroundNodes: Array<Klass<LexicalNode>> = [
   TableRowNode,
 ]
 
-export default PlaygroundNodes
+export default EditorNodes

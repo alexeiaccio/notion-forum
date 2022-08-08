@@ -9,6 +9,7 @@ import {
   postComment,
 } from '~/utils/notion/api'
 import {
+  ChildrenType,
   commentType,
   contentAndCommentsType,
   contentType,
@@ -153,7 +154,11 @@ export const pageRouter = t.router({
         [breadcrambsLength - 1]: blockId,
       } = input.breadcrambs
       const [, ...breadcrambs] = input.breadcrambs
-      const res = await postComment(blockId, ctx.session.user.id, input.comment)
+      const res = await postComment(
+        blockId,
+        ctx.session.user.id,
+        JSON.parse(input.comment) as ChildrenType,
+      )
       if (res?.comments?.[0]?.id) {
         await revalidateCached(
           // @ts-ignore

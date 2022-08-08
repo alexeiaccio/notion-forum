@@ -1,4 +1,6 @@
 import { Form, FormInput, FormSubmit, useFormState } from 'ariakit'
+import { Button } from '../Button'
+import { CommentEditor } from '../RichTextEditor/CommentEditor'
 
 export function CommentForm({
   onSubmit,
@@ -13,9 +15,15 @@ export function CommentForm({
   })
 
   return (
-    <Form state={form}>
-      <FormInput name={form.names.comment} />
-      <FormSubmit>Send</FormSubmit>
+    <Form state={form} className="grid gap-2">
+      <CommentEditor
+        placeholder="Enter you comment"
+        onChange={(value: string) => {
+          form.setValue('comment', value)
+        }}
+        charLimit={25}
+      />
+      <FormSubmit as={Button}>Send</FormSubmit>
     </Form>
   )
 }

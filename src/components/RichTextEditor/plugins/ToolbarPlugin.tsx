@@ -188,15 +188,15 @@ export default function ToolbarPlugin({
         }
       })
     }
-    if (blockType !== 'quote' && type === 'quote') {
-      editor.update(() => {
-        const selection = $getSelection()
+    // if (blockType !== 'quote' && type === 'quote') {
+    //   editor.update(() => {
+    //     const selection = $getSelection()
 
-        if ($isRangeSelection(selection)) {
-          $wrapLeafNodesInElements(selection, () => $createQuoteNode())
-        }
-      })
-    }
+    //     if ($isRangeSelection(selection)) {
+    //       $wrapLeafNodesInElements(selection, () => $createQuoteNode())
+    //     }
+    //   })
+    // }
     if (blockType !== type) {
       editor.update(() => {
         const selection = $getSelection()
