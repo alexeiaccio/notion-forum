@@ -9,6 +9,7 @@ import {
 } from 'lexical'
 import { useEffect } from 'react'
 
+// TODO count characters istead of text length
 export function MaxLengthPlugin({ maxLength }: { maxLength: number }): null {
   const [editor] = useLexicalComposerContext()
 

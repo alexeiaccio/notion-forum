@@ -1,6 +1,14 @@
 import { z } from 'zod'
-import { getUser, getUserName } from '../../../utils/notion/api'
-import { t } from '../utils'
+import { revalidateCached } from '~/utils/getWithCache'
+import { getUser, getUserInfo, updateUserInfo } from '~/utils/notion/api'
+import {
+  ChildrenType,
+  contentType,
+  ParagraphType,
+  paragraphType,
+  userType,
+} from '~/utils/notion/types'
+import { authedProcedure, t } from '../utils'
 
 export const userRouter = t.router({
   getUser: t.procedure
@@ -22,18 +30,35 @@ export const userRouter = t.router({
       const user = await getUser(input.id)
       return user
     }),
-  getUserName: t.procedure
+  getUserInfo: t.procedure
     .input(z.object({ id: z.string().nullish() }).nullish())
-    .output(
+    .output(userType.nullish())
+    .query(async ({ input }) => {
+      if (!input?.id) return null
+      const info = await getUserInfo(input.id)
+      return info
+    }),
+  updateUserInfo: authedProcedure
+    .input(
       z
         .object({
-          name: z.string().nullish(),
+          id: z.string().nullish(),
+          info: z.string().nullish(),
         })
         .nullish(),
     )
-    .query(async ({ input }) => {
-      if (!input?.id) return null
-      const name = await getUserName(input.id)
-      return { name }
+    .output(z.array(contentType).nullish())
+    .mutation(async ({ input, ctx }) => {
+      if (!input?.id || !ctx.session?.user.id || !input?.info) {
+        return null
+      }
+      const res = await updateUserInfo(
+        input.id,
+        JSON.parse(input.info) as ParagraphType,
+      )
+      if (res) {
+        await revalidateCached(ctx.res, `user/${input.id}`)
+      }
+      return res
     }),
 })

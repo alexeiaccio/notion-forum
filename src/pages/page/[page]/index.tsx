@@ -1,5 +1,6 @@
 import { format, parseISO } from 'date-fns'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
+import Link from 'next/link'
 import { Comment, CommentForm, RichText, Timestamp } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getBlockChildren, getPage, getRelations } from '~/utils/notion/api'
@@ -64,10 +65,12 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
       </div>
       <div className="flex items-baseline gap-2">
         {page?.authors?.map((author) => (
-          <span key={author.id}>
-            {'@'}
-            {author.name}
-          </span>
+          <Link key={author.id} href={`/user/${author.id}`} passHref>
+            <a>
+              {'@'}
+              {author.name}
+            </a>
+          </Link>
         ))}
       </div>
       <div className="flex items-baseline gap-2">

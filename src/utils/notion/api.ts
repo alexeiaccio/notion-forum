@@ -1,5 +1,4 @@
 import {
-  AppendBlockChildrenParameters,
   BlockObjectResponse,
   GetBlockResponse,
   GetPagePropertyResponse,
@@ -7,17 +6,20 @@ import {
   ListBlockChildrenResponse,
   PageObjectResponse,
   QueryDatabaseResponse,
+  UpdateBlockResponse,
 } from '@notionhq/client/build/src/api-endpoints'
 import type { Account } from 'next-auth'
 import { VerificationToken } from 'next-auth/adapters'
 import { ProviderType } from 'next-auth/providers'
 import { U } from 'ts-toolbelt'
+import { nil, NonNil } from 'tsdef'
 import { env } from '../../server/env'
 import { notion } from './client'
 import {
   ChildrenType,
   ContentAndCommentsType,
   PagesList,
+  ParagraphType,
   RawPageType,
   RelationType,
 } from './types'
@@ -35,8 +37,6 @@ import {
 } from './utils'
 
 type QueryDatabaseResult = U.Merge<QueryDatabaseResponse['results'][0]>
-type nil = null | undefined
-type NonNil<T> = T extends nil ? never : T
 
 const USER_DB = env.NOTION_USER_DB_ID
 const ACCOUNT_DB = env.NOTION_ACCOUNT_DB_ID
@@ -173,23 +173,6 @@ export async function getSessionAndUser(sessionToken: string) {
   }
 }
 
-export async function getUserName(id: string) {
-  const user = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
-    notion.pages.retrieve({
-      page_id: uuidFromID(id),
-    }),
-  )
-  if (!user?.properties.name?.id) return null
-  const name = await throttledAPICall<GetPagePropertyResponse>(() =>
-    notion.pages.properties.retrieve({
-      page_id: uuidFromID(id),
-      property_id: user.properties.name!.id,
-    }),
-  )
-  if (!name) return null
-  return richTextToPlainText(getProperty({ name }, 'name', 'title'))
-}
-
 export function parseUser(
   id: string,
   user: Record<string, GetPagePropertyResponse>,
@@ -275,7 +258,74 @@ export function parseVerificationToken(
 
 // #endregion
 
-// #region Role
+// #region User
+
+export async function getUserInfo(id: string | nil) {
+  const [user, blocks] = await Promise.all([
+    throttledAPICall<U.Merge<GetPageResponse>>(() =>
+      notion.pages.retrieve({
+        page_id: uuidFromID(id),
+      }),
+    ),
+    throttledAPICall<U.Merge<ListBlockChildrenResponse>>(() =>
+      notion.blocks.children.list({
+        block_id: uuidFromID(id),
+      }),
+    ),
+  ])
+  if (!user?.properties.name?.id || !blocks) return null
+  const name = await throttledAPICall<GetPagePropertyResponse>(() =>
+    notion.pages.properties.retrieve({
+      page_id: uuidFromID(id),
+      property_id: user.properties.name!.id,
+    }),
+  )
+  if (!name) return null
+  return {
+    id: uuidFromID(user.id),
+    name: richTextToPlainText(getProperty({ name }, 'name', 'title')),
+    bio: parseBlocks(blocks.results as BlockObjectResponse[])?.content,
+  }
+}
+
+export async function updateUserInfo(
+  id: string | nil,
+  children: ParagraphType,
+) {
+  if (!id) return null
+  const existingInfo = await getUserInfo(id)
+  if (existingInfo?.bio) {
+    const updatedInfo = await Promise.all(
+      existingInfo.bio.map((block, idx) =>
+        throttledAPICall<U.Merge<UpdateBlockResponse>>(() =>
+          notion.blocks.update({ block_id: block.id, ...children[idx] }),
+        ),
+      ),
+    )
+    if (children.length > existingInfo.bio.length) {
+      const appendedInfo = await throttledAPICall<
+        U.Merge<ListBlockChildrenResponse>
+      >(() =>
+        notion.blocks.children.append({
+          block_id: id,
+          children: children.slice(existingInfo.bio!.length),
+        }),
+      )
+      updatedInfo.push(
+        ...(appendedInfo.results as U.Merge<UpdateBlockResponse>[]),
+      )
+    }
+    if (!updatedInfo) return null
+    return updatedInfo.flatMap(
+      (block) => parseBlocks([block as BlockObjectResponse])?.content || [],
+    )
+  }
+  const newInfo = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
+    () => notion.blocks.children.append({ block_id: id, children }),
+  )
+  if (!newInfo) return null
+  return parseBlocks(newInfo.results as BlockObjectResponse[])?.content
+}
 
 export async function getRole(userId: string) {
   const roles = await throttledAPICall<QueryDatabaseResponse>(() =>
@@ -308,13 +358,30 @@ export async function getRole(userId: string) {
 
 // #region Page
 
-export async function getPagesList(cursor?: string | nil): Promise<PagesList> {
+export async function getPagesList(
+  cursor?: string | nil,
+  filter?: {
+    author?: string | nil
+  },
+): Promise<PagesList> {
   const pages = await throttledAPICall<U.Merge<QueryDatabaseResponse>>(() =>
     notion.databases.query({
       database_id: uuidFromID(PAGE_DB),
       sorts: [{ timestamp: 'last_edited_time', direction: 'ascending' }],
       page_size: 10,
       start_cursor: cursor || undefined,
+      ...(filter
+        ? {
+            filter: {
+              or: [
+                {
+                  property: 'authors',
+                  relation: { contains: uuidFromID(filter.author) },
+                },
+              ],
+            },
+          }
+        : {}),
     }),
   )
   const results = await Promise.all(

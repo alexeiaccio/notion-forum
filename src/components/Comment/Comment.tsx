@@ -1,11 +1,10 @@
-import { Role } from 'ariakit'
-import { format, parseISO } from 'date-fns'
+import { Form, FormSubmit, Role, useFormState } from 'ariakit'
 import Link from 'next/link'
-import { twMerge } from 'tailwind-merge'
 import { ContentAndCommentsType, PageType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
-import { CommentForm } from '../CommentForm'
+import { Button } from '../Button'
 import { RichText } from '../RichText'
+import { CommentEditor } from '../RichTextEditor'
 import { Timestamp } from '../Timestamp'
 
 export function Comment({
@@ -89,5 +88,31 @@ export function Comment({
         />
       </div>
     </div>
+  )
+}
+
+export function CommentForm({
+  onSubmit,
+}: {
+  onSubmit: (data: string) => void
+}) {
+  const form = useFormState({
+    defaultValues: { comment: '' },
+  })
+  form.useSubmit(() => {
+    onSubmit(form.values.comment)
+  })
+
+  return (
+    <Form state={form} className="grid gap-2">
+      <CommentEditor
+        placeholder="Enter you comment"
+        onChange={(value: string) => {
+          form.setValue('comment', value)
+        }}
+        charLimit={255}
+      />
+      <FormSubmit as={Button}>Send</FormSubmit>
+    </Form>
   )
 }

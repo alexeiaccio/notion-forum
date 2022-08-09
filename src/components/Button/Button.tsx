@@ -17,7 +17,7 @@ export const Button = forwardRef<
 })
 Button.displayName = 'Button'
 
-const buttonStyles = cva(
+export const buttonStyles = cva(
   'py-1 px-2 rounded-sm text-sm [&[data-focus-visible]]:ring ring-blue-400 ring-inset outline-none',
   {
     variants: {

@@ -20,11 +20,22 @@ import {
 import { authedProcedure, t } from '../utils'
 
 export const pageRouter = t.router({
-  infinitePagesList: t.procedure
+  getPagesList: t.procedure
     .input(z.object({ cursor: z.string().nullish() }).nullish())
     .output(pagesList.nullish())
     .query(async ({ input }) => {
       const res = await getPagesList(input?.cursor)
+      return res
+    }),
+  getUserPagesList: t.procedure
+    .input(
+      z
+        .object({ id: z.string().nullish(), cursor: z.string().nullish() })
+        .nullish(),
+    )
+    .output(pagesList.nullish())
+    .query(async ({ input }) => {
+      const res = await getPagesList(input?.cursor, { author: input?.id })
       return res
     }),
   getPage: t.procedure
@@ -161,7 +172,6 @@ export const pageRouter = t.router({
       )
       if (res?.comments?.[0]?.id) {
         await revalidateCached(
-          // @ts-ignore
           ctx.res,
           `page/${pageId}/comments/${breadcrambs.join('/')}`,
         )

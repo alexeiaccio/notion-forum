@@ -252,4 +252,28 @@ export const ChildrenType = z.array(
 
 export type ChildrenType = z.infer<typeof ChildrenType>
 
+export const paragraphType = z.array(
+  z.object({
+    paragraph: z.object({
+      rich_text: z.array(richTextRequestSchema),
+      color: colorType.optional(),
+    }),
+    type: z.literal('paragraph').optional(),
+  }),
+)
+
+export type ParagraphType = z.infer<typeof paragraphType>
+
+// #endregion
+
+// #region User
+
+export const userType = z.object({
+  id: z.string(),
+  name: z.string().nullish(),
+  bio: z.array(contentType).nullish(),
+})
+
+export type UserType = z.infer<typeof userType>
+
 // #endregion

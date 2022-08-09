@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { twMerge } from 'tailwind-merge'
 import { trpc } from '~/utils/trpc'
-import { Button } from '../Button'
+import { Button, buttonStyles } from '../Button'
 
 export function Header() {
   return (
@@ -100,8 +100,13 @@ function User() {
       </MenuButton>
       <Menu
         state={menu}
-        className="p-2 rounded-sm shadow-lg bg-slate-200 ring-1 ring-inset ring-slate-400 shadow-slate-400"
+        className="grid gap-1 p-2 rounded-sm shadow-lg bg-slate-200 ring-1 ring-inset ring-slate-400 shadow-slate-400"
       >
+        <MenuItem>
+          <Link href="/account" passHref>
+            <a className={buttonStyles()}>Profile</a>
+          </Link>
+        </MenuItem>
         <MenuItem as={Button} onClick={() => signOut()}>
           Logout
         </MenuItem>
