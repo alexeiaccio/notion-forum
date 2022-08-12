@@ -30,7 +30,13 @@ function Breadcrumbs() {
         ...((query.comments as string[]) || []),
       ],
     },
-    { enabled: Boolean(query.page), keepPreviousData: true },
+    {
+      enabled: Boolean(query.page),
+      keepPreviousData: true,
+      staleTime: Infinity,
+      cacheTime: Infinity,
+      refetchOnWindowFocus: false,
+    },
   )
   const page = data?.page
 
@@ -86,9 +92,9 @@ function Breadcrumbs() {
 function User() {
   const { data: session, isLoading } = trpc.proxy.auth.getSession.useQuery()
   const menu = useMenuState({ gutter: 8, placement: 'bottom-end' })
-
   if (isLoading) return <Button>...</Button>
-  if (!session?.user) return <Button onClick={() => signIn()}>Login</Button>
+  if (!session?.user)
+    return <Button onClick={() => signIn('email')}>Login</Button>
   return (
     <>
       <MenuButton
@@ -96,17 +102,17 @@ function User() {
         as={Button}
         className="[&[aria-expanded='true']]:ring-1 [&[aria-expanded='true']]:ring-slate-400"
       >
-        {session.user.name}
+        {session.user.name || session.user.email?.split('@')[0]}
       </MenuButton>
       <Menu
         state={menu}
         className="grid gap-1 p-2 rounded-sm shadow-lg bg-slate-200 ring-1 ring-inset ring-slate-400 shadow-slate-400"
       >
-        <MenuItem>
-          <Link href="/account" passHref>
-            <a className={buttonStyles()}>Profile</a>
-          </Link>
-        </MenuItem>
+        <Link href="/account" passHref>
+          <MenuItem as="a" className={buttonStyles()}>
+            Profile
+          </MenuItem>
+        </Link>
         <MenuItem as={Button} onClick={() => signOut()}>
           Logout
         </MenuItem>

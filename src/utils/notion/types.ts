@@ -271,6 +271,7 @@ export type ParagraphType = z.infer<typeof paragraphType>
 export const userType = z.object({
   id: z.string(),
   name: z.string().nullish(),
+  image: z.string().nullish(),
   bio: z.array(contentType).nullish(),
 })
 

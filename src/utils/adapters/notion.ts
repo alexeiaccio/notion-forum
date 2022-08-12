@@ -35,7 +35,8 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
           title: [
             {
               text: {
-                content: user.name as string,
+                content:
+                  (user.name as string) ?? (user.email as string).split('@')[0],
               },
             },
           ],
@@ -157,52 +158,52 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
       return parseUser(user?.id, userProps)
     },
     async updateUser(user) {
-      const properties: CreatePageBodyParameters = {
-        name: {
-          title: [
-            {
-              text: {
-                content: user.name as string,
-              },
-            },
-          ],
-        },
-        email: {
-          email: user.email as string,
-        },
-      }
-      if (user.verifiedEmail) {
-        properties.emailVerified = {
-          number: (user.emailVerified as Date)?.getTime() ?? 0,
-        }
-      }
-      if (user.image) {
-        properties.image = {
-          files: [
-            {
-              ...((user.image as string).includes('secure.notion-static.com')
-                ? { file: { url: user.image as string }, type: 'file' }
-                : {
-                    external: { url: user.image as string },
-                    type: 'external',
-                  }),
-              name: 'avatar',
-            },
-          ],
-        }
-      }
-      const updatedUser = await throttledAPICall<U.Merge<UpdatePageResponse>>(
-        () =>
-          client.pages.update({
-            page_id: uuidFromID(user.id),
-            properties,
-          }),
-      )
-      const userProps = await getProperties(client, { page: updatedUser })
-      if (!updatedUser || !userProps) {
-        throw new Error('Failed to update user')
-      }
-      return parseUser(updatedUser?.id, userProps)
+      // const properties: CreatePageBodyParameters = {
+      //   name: {
+      //     title: [
+      //       {
+      //         text: {
+      //           content: (user.name as string) || '',
+      //         },
+      //       },
+      //     ],
+      //   },
+      //   email: {
+      //     email: user.email as string,
+      //   },
+      // }
+      // if (user.verifiedEmail) {
+      //   properties.emailVerified = {
+      //     number: (user.emailVerified as Date)?.getTime() ?? 0,
+      //   }
+      // }
+      // if (user.image) {
+      //   properties.image = {
+      //     files: [
+      //       {
+      //         ...((user.image as string).includes('secure.notion-static.com')
+      //           ? { file: { url: user.image as string }, type: 'file' }
+      //           : {
+      //               external: { url: user.image as string },
+      //               type: 'external',
+      //             }),
+      //         name: 'avatar',
+      //       },
+      //     ],
+      //   }
+      // }
+      // const updatedUser = await throttledAPICall<U.Merge<UpdatePageResponse>>(
+      //   () =>
+      //     client.pages.update({
+      //       page_id: uuidFromID(user.id),
+      //       properties,
+      //     }),
+      // )
+      // const userProps = await getProperties(client, { page: updatedUser })
+      // if (!updatedUser || !userProps) {
+      //   throw new Error('Failed to update user')
+      // }
+      return user as AdapterUser
     },
     async deleteUser(userId) {
       const deletedUser = await throttledAPICall<U.Merge<UpdatePageResponse>>(
@@ -498,12 +499,13 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
       const tokenToVerificate = verificationTokens
         ?.results?.[0] as QueryDatabaseResult
       if (!tokenToVerificate) return null
-      await throttledAPICall<U.Merge<UpdatePageResponse>>(() =>
-        client.pages.update({
-          page_id: uuidFromID(tokenToVerificate.id),
-          archived: true,
-        }),
-      )
+      // TODO find a way to delete the token
+      // await throttledAPICall<U.Merge<UpdatePageResponse>>(() =>
+      //   client.pages.update({
+      //     page_id: uuidFromID(tokenToVerificate.id),
+      //     archived: true,
+      //   }),
+      // )
       const verificationTokenProps = await getProperties(client, {
         page: tokenToVerificate,
       })

@@ -7,6 +7,7 @@ import {
   PageObjectResponse,
   QueryDatabaseResponse,
   UpdateBlockResponse,
+  UpdatePageResponse,
 } from '@notionhq/client/build/src/api-endpoints'
 import type { Account } from 'next-auth'
 import { VerificationToken } from 'next-auth/adapters'
@@ -274,18 +275,47 @@ export async function getUserInfo(id: string | nil) {
     ),
   ])
   if (!user?.properties.name?.id || !blocks) return null
-  const name = await throttledAPICall<GetPagePropertyResponse>(() =>
-    notion.pages.properties.retrieve({
-      page_id: uuidFromID(id),
-      property_id: user.properties.name!.id,
-    }),
-  )
-  if (!name) return null
+  const userProps = await getProperties(notion, {
+    page: user,
+    pick: ['name', 'image'],
+  })
+  if (!userProps) return null
+  const image =
+    getFile(getProperty(userProps, 'image', 'files'))?.[0]?.url ?? null
   return {
-    id: uuidFromID(user.id),
-    name: richTextToPlainText(getProperty({ name }, 'name', 'title')),
+    id: user.id,
+    name: richTextToPlainText(getProperty(userProps, 'name', 'title')),
+    image: image ? new URL(image).pathname : null,
     bio: parseBlocks(blocks.results as BlockObjectResponse[])?.content,
   }
+}
+
+export async function updateUserName(id: string | nil, name: string) {
+  if (!id) return null
+  const updatedUser = await throttledAPICall<U.Merge<UpdatePageResponse>>(() =>
+    notion.pages.update({
+      page_id: uuidFromID(id),
+      properties: {
+        name: {
+          title: [
+            {
+              text: {
+                content: name,
+              },
+            },
+          ],
+        },
+      },
+    }),
+  )
+  const userProps = await getProperties(notion, {
+    page: updatedUser,
+    pick: ['name'],
+  })
+  if (!updatedUser || !userProps) {
+    throw new Error('Failed to update user')
+  }
+  return parseUser(updatedUser?.id, userProps).name
 }
 
 export async function updateUserInfo(

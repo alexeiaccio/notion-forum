@@ -1,6 +1,11 @@
 import { z } from 'zod'
 import { revalidateCached } from '~/utils/getWithCache'
-import { getUser, getUserInfo, updateUserInfo } from '~/utils/notion/api'
+import {
+  getUser,
+  getUserInfo,
+  updateUserInfo,
+  updateUserName,
+} from '~/utils/notion/api'
 import {
   ChildrenType,
   contentType,
@@ -37,6 +42,26 @@ export const userRouter = t.router({
       if (!input?.id) return null
       const info = await getUserInfo(input.id)
       return info
+    }),
+  updateUserName: authedProcedure
+    .input(
+      z
+        .object({
+          id: z.string().nullish(),
+          name: z.string().nullish(),
+        })
+        .nullish(),
+    )
+    .output(z.string().nullish())
+    .mutation(async ({ input, ctx }) => {
+      if (!input?.id || !ctx.session?.user.id || !input?.name) {
+        return null
+      }
+      const res = await updateUserName(input.id, input.name)
+      if (res) {
+        await revalidateCached(ctx.res, `user/${input.id}`)
+      }
+      return res
     }),
   updateUserInfo: authedProcedure
     .input(

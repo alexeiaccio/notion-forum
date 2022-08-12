@@ -1,5 +1,5 @@
 import { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
-import { Button, Card, RichText } from '~/components'
+import { Button, Card, Image, RichText } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getSSG } from '~/server/trpc/ssg'
 import { getUserInfo } from '~/utils/notion/api'
@@ -36,6 +36,15 @@ function ProfilePage({ user }: InferGetStaticPropsType<typeof getStaticProps>) {
 
   return (
     <>
+      {user?.image ? (
+        <Image
+          src={user.image}
+          id={user.id}
+          alt={user.name || ''}
+          width={200}
+          height={200}
+        />
+      ) : null}
       <h1>{user?.name}</h1>
       <div>
         {user?.bio?.map((block) => (

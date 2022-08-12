@@ -1,3 +1,4 @@
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { AppProps } from 'next/app'
 import { ReactNode } from 'react'
 import { trpc } from '~/utils/trpc'
@@ -13,7 +14,12 @@ function MyApp({
 }) {
   const getLayout = Component.getLayout || ((page: ReactNode) => page)
 
-  return <div>{getLayout(<Component {...pageProps} />)}</div>
+  return (
+    <div>
+      {getLayout(<Component {...pageProps} />)}
+      <ReactQueryDevtools initialIsOpen={false} />
+    </div>
+  )
 }
 
 export default trpc.withTRPC(MyApp)

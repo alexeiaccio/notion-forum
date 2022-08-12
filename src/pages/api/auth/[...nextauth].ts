@@ -3,8 +3,8 @@ import NextAuth from 'next-auth/next'
 import EmailProvider from 'next-auth/providers/email'
 import { env } from '../../../server/env'
 import NotionAdapter from '../../../utils/adapters/notion'
-import { notion, notionVersion } from '../../../utils/notion/client'
-import NotionProvider from '../../../utils/providers/notion'
+import { notion } from '../../../utils/notion/client'
+// import NotionProvider from '../../../utils/providers/notion'
 
 export const authOptions: NextAuthOptions = {
   adapter: NotionAdapter(notion),
@@ -17,11 +17,11 @@ export const authOptions: NextAuthOptions = {
     },
   },
   providers: [
-    NotionProvider({
-      clientId: env.NOTION_CLIENT_ID,
-      clientSecret: env.NOTION_CLIENT_SECRET,
-      notionVersion,
-    }),
+    // NotionProvider({
+    //   clientId: env.NOTION_CLIENT_ID,
+    //   clientSecret: env.NOTION_CLIENT_SECRET,
+    //   notionVersion,
+    // }),
     EmailProvider({
       server: {
         host: env.EMAIL_SERVER_HOST,

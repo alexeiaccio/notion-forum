@@ -192,22 +192,21 @@ export async function getProperties(
   },
 ): Promise<Record<string, GetPagePropertyResponse> | null> {
   if (!page) return null
+  const properties = Object.entries(page.properties).filter(([key]) =>
+    skip ? !skip.includes(key) : pick ? pick.includes(key) : true,
+  )
   const props = await Promise.all(
-    Object.entries(page.properties)
-      .filter(([key]) =>
-        skip ? !skip.includes(key) : pick ? pick.includes(key) : true,
-      )
-      .map(([, prop]) =>
-        throttledAPICall<GetPagePropertyResponse>(() =>
-          client.pages.properties.retrieve({
-            page_id: page.id,
-            property_id: prop.id,
-          }),
-        ),
+    properties.map(([, prop]) =>
+      throttledAPICall<GetPagePropertyResponse>(() =>
+        client.pages.properties.retrieve({
+          page_id: page.id,
+          property_id: prop.id,
+        }),
       ),
+    ),
   )
   const result = {} as Record<string, GetPagePropertyResponse>
-  Object.keys(page.properties).forEach((key, index) => {
+  properties.forEach(([key], index) => {
     if (props[index]) {
       result[key] = props[index] as GetPagePropertyResponse
     }
