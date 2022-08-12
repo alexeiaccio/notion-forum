@@ -6,7 +6,7 @@ import type {
 } from 'next'
 import { unstable_getServerSession as getServerSession } from 'next-auth/next'
 import dynamic from 'next/dynamic'
-import { useState } from 'react'
+import { CSSProperties, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { nil } from 'tsdef'
 import { buttonStyles, Image, RichText } from '~/components'
@@ -58,13 +58,16 @@ function ProfilePage({
   return (
     <>
       {data?.image ? (
-        <Image
-          src={data.image}
-          id={user.id}
-          alt={data.name || ''}
-          width={200}
-          height={200}
-        />
+        <div className="overflow-hidden rounded-full w-36 h-36">
+          <Image
+            src={data.image}
+            id={user.id}
+            alt={data.name || ''}
+            className="object-cover w-full h-full"
+            width={144}
+            height={144}
+          />
+        </div>
       ) : null}
       {(!isLoading && !data?.name) || editName ? (
         <>

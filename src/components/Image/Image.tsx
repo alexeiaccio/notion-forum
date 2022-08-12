@@ -4,14 +4,12 @@ export function Image({
   src,
   id,
   alt = '',
-  width = 600,
+  width = 1280,
   height = 600,
+  ...props
 }: ImageProps & {
   src?: string
   id?: string
-  alt?: string
-  width?: number
-  height?: number | 'auto'
 }) {
   if (!src || !id) return null
   return (
@@ -22,6 +20,7 @@ export function Image({
       alt={alt}
       width={width}
       height={height}
+      {...props}
     />
   )
 }

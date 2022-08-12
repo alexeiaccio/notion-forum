@@ -37,13 +37,16 @@ function ProfilePage({ user }: InferGetStaticPropsType<typeof getStaticProps>) {
   return (
     <>
       {user?.image ? (
-        <Image
-          src={user.image}
-          id={user.id}
-          alt={user.name || ''}
-          width={200}
-          height={200}
-        />
+        <div className="overflow-hidden rounded-full w-36 h-36">
+          <Image
+            src={user.image}
+            id={user.id}
+            alt={user.name || ''}
+            className="object-cover w-full h-full"
+            width={144}
+            height={144}
+          />
+        </div>
       ) : null}
       <h1>{user?.name}</h1>
       <div>
