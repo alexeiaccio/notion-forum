@@ -13,6 +13,7 @@ const envSchema = z.object({
 
   NOTION_TOKEN: z.string(),
 
+  NOTION_SPACE_ID: z.string(),
   NOTION_USER_DB_ID: z.string(),
   NOTION_ACCOUNT_DB_ID: z.string(),
   NOTION_SESSION_DB_ID: z.string(),

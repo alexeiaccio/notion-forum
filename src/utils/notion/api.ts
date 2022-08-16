@@ -179,12 +179,13 @@ export function parseUser(
   user: Record<string, GetPagePropertyResponse>,
 ) {
   const emailVerified = getProperty(user, 'emailVerified', 'number')
+  const image = getFile(getProperty(user, 'image', 'files'))?.[0]?.url ?? null
   return {
     id,
     name: richTextToPlainText(getProperty(user, 'name', 'title')),
     email: getProperty(user, 'email', 'email'),
     emailVerified: emailVerified ? new Date(emailVerified) : null,
-    image: getFile(getProperty(user, 'image', 'files'))?.[0]?.url ?? null,
+    image: image ? new URL(image).pathname : null,
   }
 }
 
@@ -316,6 +317,38 @@ export async function updateUserName(id: string | nil, name: string) {
     throw new Error('Failed to update user')
   }
   return parseUser(updatedUser?.id, userProps).name
+}
+
+export async function updateUserImage(id: string | nil, url: string) {
+  if (!id) return null
+  const updatedUser = await throttledAPICall<U.Merge<UpdatePageResponse>>(() =>
+    notion.pages.update({
+      page_id: uuidFromID(id),
+      properties: {
+        image: {
+          files: [
+            {
+              ...(url.includes('secure.notion-static.com')
+                ? { file: { url }, type: 'file' }
+                : {
+                    external: { url },
+                    type: 'external',
+                  }),
+              name: 'avatar',
+            },
+          ],
+        },
+      },
+    }),
+  )
+  const userProps = await getProperties(notion, {
+    page: updatedUser,
+    pick: ['image'],
+  })
+  if (!updatedUser || !userProps) {
+    throw new Error('Failed to update user')
+  }
+  return parseUser(updatedUser?.id, userProps).image
 }
 
 export async function updateUserInfo(

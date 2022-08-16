@@ -3,9 +3,11 @@ import { revalidateCached } from '~/utils/getWithCache'
 import {
   getUser,
   getUserInfo,
+  updateUserImage,
   updateUserInfo,
   updateUserName,
 } from '~/utils/notion/api'
+import { getUploadFileUrl, uploadUrl } from '~/utils/notion/image'
 import {
   ChildrenType,
   contentType,
@@ -42,6 +44,49 @@ export const userRouter = t.router({
       if (!input?.id) return null
       const info = await getUserInfo(input.id)
       return info
+    }),
+  getUploadFileUrl: authedProcedure
+    .input(
+      z
+        .object({
+          name: z.string().nullish(),
+          contentType: z.string().nullish(),
+          contentLength: z.number().optional(),
+        })
+        .nullish(),
+    )
+    .output(uploadUrl.nullish())
+    .mutation(async ({ input, ctx }) => {
+      if (!input?.name || !ctx.session?.user.id || !input?.contentType) {
+        return null
+      }
+      const res = await getUploadFileUrl(
+        ctx.session.user.id,
+        input.name,
+        input.contentType,
+        input.contentLength,
+      )
+      return res
+    }),
+  updateUserImage: authedProcedure
+    .input(
+      z
+        .object({
+          id: z.string().nullish(),
+          url: z.string().nullish(),
+        })
+        .nullish(),
+    )
+    .output(z.string().nullish())
+    .mutation(async ({ input, ctx }) => {
+      if (!input?.id || !ctx.session?.user.id || !input?.url) {
+        return null
+      }
+      const res = await updateUserImage(input.id, input.url)
+      if (res) {
+        await revalidateCached(ctx.res, `user/${input.id}`)
+      }
+      return res
     }),
   updateUserName: authedProcedure
     .input(

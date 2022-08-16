@@ -6,7 +6,7 @@ import type {
 } from 'next'
 import { unstable_getServerSession as getServerSession } from 'next-auth/next'
 import dynamic from 'next/dynamic'
-import { CSSProperties, useState } from 'react'
+import { CSSProperties, useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { nil } from 'tsdef'
 import { buttonStyles, Image, RichText } from '~/components'
@@ -47,11 +47,18 @@ function ProfilePage({
       id: user.id,
     },
     {
+      initialData: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        image: user.image,
+      },
       staleTime: Infinity,
       cacheTime: Infinity,
       refetchOnWindowFocus: false,
     },
   )
+  const [editImage, setEditImage] = useState(false)
   const [editName, setEditName] = useState(false)
   const [editBio, setEditBio] = useState(false)
 
@@ -69,6 +76,25 @@ function ProfilePage({
           />
         </div>
       ) : null}
+      {editImage && user.id ? (
+        <>
+          <ImageForm id={user.id} onSubmit={() => setEditImage(false)} />
+          <Button
+            className={buttonStyles()}
+            onClick={() => setEditImage(false)}
+          >
+            Close
+          </Button>
+        </>
+      ) : (
+        <Button
+          className={buttonStyles()}
+          onClick={() => setEditImage(true)}
+          disabled={isFetching}
+        >
+          Edit Avatar
+        </Button>
+      )}
       {(!isLoading && !data?.name) || editName ? (
         <>
           <NameForm
@@ -91,7 +117,7 @@ function ProfilePage({
             onClick={() => setEditName(true)}
             disabled={isFetching}
           >
-            Edit
+            Edit Name
           </Button>
         </>
       )}
@@ -140,6 +166,70 @@ ProfilePage.getLayout = getLayout
 
 export default ProfilePage
 
+function ImageForm({ id, onSubmit }: { id: string; onSubmit: () => void }) {
+  const file = useRef<File>()
+  const form = useFormState({
+    defaultValues: { url: '' },
+  })
+  const utils = trpc.proxy.useContext()
+  const { mutate: getUploadFileUrl } =
+    trpc.proxy.user.getUploadFileUrl.useMutation({
+      async onSuccess(urls) {
+        if (!urls || !file.current) return
+        try {
+          await fetch(urls.signedPutUrl, {
+            method: 'PUT',
+            body: file.current,
+          })
+          form.setValue('url', urls.signedGetUrl)
+          file.current = undefined
+        } catch (error) {
+          console.error(error)
+        }
+      },
+    })
+  const { mutate } = trpc.proxy.user.updateUserImage.useMutation({
+    onSuccess(nextData) {
+      utils.user.getUserInfo.setData(
+        (prevData) => {
+          if (!prevData || !nextData) return null
+          return {
+            ...prevData,
+            image: nextData,
+          }
+        },
+        { id },
+      )
+      utils.user.getUserInfo.invalidate({
+        id,
+      })
+    },
+  })
+  form.useSubmit(() => {
+    if (!form.values.url) return
+    mutate({ id, url: form.values.url })
+    onSubmit()
+  })
+
+  async function handleUpload(e: any) {
+    const f = e.target.files[0] as File
+    file.current = f
+    getUploadFileUrl({
+      name: f.name,
+      contentType: f.type,
+      contentLength: f.size,
+    })
+  }
+
+  return (
+    <Form state={form} className="flex gap-2">
+      <FormInput name={form.names.url} hidden placeholder="Drop image" />
+      <input type="file" onChange={handleUpload} />
+      <FormSubmit as={Button}>Send</FormSubmit>
+    </Form>
+  )
+}
+
 function NameForm({
   id,
   name,
@@ -155,17 +245,17 @@ function NameForm({
   const { mutate } = trpc.proxy.user.updateUserName.useMutation({
     onSuccess(nextData) {
       utils.user.getUserInfo.setData(
-        (prevData: UserType | null): UserType | null => {
+        (prevData): UserType | null => {
           if (!prevData || !nextData) return null
           return {
             ...prevData,
             name: nextData,
           }
         },
-        { id: id },
+        { id },
       )
       utils.user.getUserInfo.invalidate({
-        id: id,
+        id,
       })
     },
   })
@@ -173,7 +263,7 @@ function NameForm({
     defaultValues: { name: name },
   })
   form.useSubmit(() => {
-    mutate({ id: id, name: form.values.name })
+    mutate({ id, name: form.values.name })
     onSubmit()
   })
 
@@ -198,7 +288,7 @@ function InfoForm({
   const { mutate } = trpc.proxy.user.updateUserInfo.useMutation({
     onSuccess(nextData) {
       utils.user.getUserInfo.setData(
-        (prevData: UserType | null): UserType | null => {
+        (prevData): UserType | null => {
           if (!prevData || !nextData) return null
           return {
             ...prevData,
