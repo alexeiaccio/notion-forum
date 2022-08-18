@@ -23,7 +23,6 @@ export const colorType = z.union([
   z.literal('pink_background'),
   z.literal('red_background'),
 ])
-
 export type ColorType = z.infer<typeof colorType>
 
 export const annotationType = z.object({
@@ -34,7 +33,6 @@ export const annotationType = z.object({
   code: z.boolean().optional(),
   color: colorType.optional(),
 })
-
 export type AnnotationType = z.infer<typeof annotationType>
 
 // #endregion
@@ -47,7 +45,6 @@ export const textType = z.object({
   link: z.string().nullish(),
   annotations: annotationType,
 })
-
 export type TextType = z.infer<typeof textType>
 
 export const equationType = z.object({
@@ -55,7 +52,6 @@ export const equationType = z.object({
   equation: z.string(),
   annotations: annotationType,
 })
-
 export type EquationType = z.infer<typeof equationType>
 
 export const mentionType = z.object({
@@ -73,11 +69,9 @@ export const mentionType = z.object({
   ]),
   annotations: annotationType,
 })
-
 export type MentionType = z.infer<typeof mentionType>
 
 export const richTextType = z.union([textType, mentionType, equationType])
-
 export type RichTextType = z.infer<typeof richTextType>
 
 export const rawPageType = z.object({
@@ -101,14 +95,12 @@ export const rawPageType = z.object({
   created: z.string().nullish(),
   updated: z.string().nullish(),
 })
-
 export type RawPageType = z.infer<typeof rawPageType>
 
 export const relationType = z.object({
   id: z.string().nullish(),
   name: z.string().nullish(),
 })
-
 export type RelationType = z.infer<typeof relationType>
 
 export const pageType = z.object({
@@ -126,7 +118,6 @@ export const pageType = z.object({
   created: z.string().nullish(),
   updated: z.string().nullish(),
 })
-
 export type PageType = z.infer<typeof pageType>
 
 export const pagesList = z.object({
@@ -134,7 +125,6 @@ export const pagesList = z.object({
   hasMore: z.boolean(),
   nextCursor: z.string().nullish(),
 })
-
 export type PagesList = z.infer<typeof pagesList>
 
 export const commentType = z.object({
@@ -147,7 +137,6 @@ export const commentType = z.object({
     })
     .nullish(),
 })
-
 export type CommentType = z.infer<typeof commentType>
 
 export const contentType = z.union([
@@ -188,7 +177,6 @@ export const contentType = z.union([
     color: colorType.nullish(),
   }),
 ])
-
 export type ContentType = z.infer<typeof contentType>
 
 const commentHeaderType = z.object({
@@ -199,14 +187,12 @@ const commentHeaderType = z.object({
     date: z.string(),
   }),
 })
-
 export type CommentHeaderType = z.infer<typeof commentHeaderType>
 
 export const contentAndCommentsType = z.object({
   content: z.array(contentType).nullish(),
   comments: z.array(commentHeaderType).nullish(),
 })
-
 export type ContentAndCommentsType = z.infer<typeof contentAndCommentsType>
 
 // #endregion
@@ -226,7 +212,6 @@ const richTextRequestSchema = z.object({
   type: z.literal('text').optional(),
   annotations: annotationType.optional(),
 })
-
 export type RichTextRequestSchema = z.infer<typeof richTextRequestSchema>
 
 export const ChildrenType = z.array(
@@ -249,7 +234,6 @@ export const ChildrenType = z.array(
     }),
   ]),
 )
-
 export type ChildrenType = z.infer<typeof ChildrenType>
 
 export const paragraphType = z.array(
@@ -261,7 +245,6 @@ export const paragraphType = z.array(
     type: z.literal('paragraph').optional(),
   }),
 )
-
 export type ParagraphType = z.infer<typeof paragraphType>
 
 // #endregion
@@ -274,7 +257,37 @@ export const userType = z.object({
   image: z.string().nullish(),
   bio: z.array(contentType).nullish(),
 })
-
 export type UserType = z.infer<typeof userType>
+
+export const botType = z.object({
+  access_token: z.string(),
+  token_type: z.string(),
+  bot_id: z.string(),
+  workspace_name: z.string(),
+  workspace_icon: z.string(),
+  workspace_id: z.string(),
+  owner: z.object({
+    type: z.string(),
+    user: z.object({
+      object: z.string(),
+      id: z.string(),
+      name: z.string(),
+      avatar_url: z.string(),
+      type: z.string(),
+      person: z.object({ email: z.string() }),
+    }),
+  }),
+})
+export type BotType = z.infer<typeof botType>
+
+export const spaceType = z.object({
+  id: z.string().nullish(),
+  spaceId: z.string().nullish(),
+  pageId: z.string().nullish(),
+  tableId: z.string().nullish(),
+  userId: z.string().nullish(),
+  accountId: z.string().nullish(),
+})
+export type SpaceType = z.infer<typeof spaceType>
 
 // #endregion

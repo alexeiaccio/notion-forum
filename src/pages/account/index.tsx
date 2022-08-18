@@ -158,6 +158,9 @@ function ProfilePage({
           Add Bio
         </Button>
       ) : null}
+      <div>
+        <Space />
+      </div>
     </>
   )
 }
@@ -344,4 +347,13 @@ function InfoForm({
       <FormSubmit as={Button}>Send</FormSubmit>
     </Form>
   )
+}
+
+function Space() {
+  const { data, isLoading } = trpc.proxy.user.getSpace.useQuery()
+
+  if (data?.type === 'url') {
+    return <a href={data.url}>Connect to Notion</a>
+  }
+  return <pre>{JSON.stringify(data)}</pre>
 }

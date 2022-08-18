@@ -1,6 +1,8 @@
 import { z } from 'zod'
+import { env } from '~/server/env'
 import { revalidateCached } from '~/utils/getWithCache'
 import {
+  getSpace,
   getUser,
   getUserInfo,
   updateUserImage,
@@ -13,6 +15,7 @@ import {
   contentType,
   ParagraphType,
   paragraphType,
+  spaceType,
   userType,
 } from '~/utils/notion/types'
 import { authedProcedure, t } from '../utils'
@@ -131,4 +134,27 @@ export const userRouter = t.router({
       }
       return res
     }),
+  getSpace: authedProcedure
+    .output(
+      z
+        .discriminatedUnion('type', [
+          z.object({ type: z.literal('space') }).merge(spaceType),
+          z.object({ type: z.literal('url'), url: z.string() }),
+        ])
+        .nullish(),
+    )
+    .query(async ({ ctx }) => {
+      if (!ctx.session.user?.id) return null
+      const space = await getSpace(ctx.session.user.id)
+      if (space) return { type: 'space', ...space }
+      const url = new URL('https://api.notion.com/v1/oauth/authorize')
+      url.searchParams.append('client_id', env.NOTION_CLIENT_ID)
+      url.searchParams.append('redirect_uri', `${env.NEXTAUTH_URL}/api/notion`)
+      url.searchParams.append('response_type', 'code')
+      url.searchParams.append('owner', 'user')
+      return { type: 'url', url: url.toString() }
+    }),
+  connectSpace: authedProcedure.mutation(async ({ ctx }) => {
+    if (!ctx.session.user?.id) return null
+  }),
 })

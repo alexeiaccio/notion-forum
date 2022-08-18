@@ -1,5 +1,6 @@
 import {
   BlockObjectResponse,
+  CreatePageResponse,
   GetBlockResponse,
   GetPagePropertyResponse,
   GetPageResponse,
@@ -17,12 +18,14 @@ import { nil, NonNil } from 'tsdef'
 import { env } from '../../server/env'
 import { notion } from './client'
 import {
+  BotType,
   ChildrenType,
   ContentAndCommentsType,
   PagesList,
   ParagraphType,
   RawPageType,
   RelationType,
+  SpaceType,
 } from './types'
 import {
   getFile,
@@ -43,6 +46,7 @@ const USER_DB = env.NOTION_USER_DB_ID
 const ACCOUNT_DB = env.NOTION_ACCOUNT_DB_ID
 const SESSION_DB = env.NOTION_SESSION_DB_ID
 const ROLE_DB = env.NOTION_ROLE_DB_ID
+const SPACE_DB = env.NOTION_SPACE_DB_ID
 const PAGE_DB = env.NOTION_PAGE_DB_ID
 
 // #region Auth
@@ -417,6 +421,106 @@ export async function getRole(userId: string) {
   }
 }
 
+export async function getSpace(userId: string) {
+  const spaces = await throttledAPICall<QueryDatabaseResponse>(() =>
+    notion.databases.query({
+      database_id: uuidFromID(SPACE_DB),
+      filter: {
+        and: [
+          {
+            property: 'userId',
+            relation: {
+              contains: uuidFromID(userId),
+            },
+          },
+        ],
+      },
+    }),
+  )
+  const space = spaces?.results?.[0] as U.Merge<
+    QueryDatabaseResponse['results'][0]
+  >
+  const spaceProps = await getProperties(notion, { page: space })
+  if (!space || !spaceProps) return null
+  return {
+    id: space?.id,
+    ...parseSpace(spaceProps),
+  }
+}
+
+export async function connectSpace(callback: BotType) {
+  const users = await throttledAPICall<QueryDatabaseResponse>(() =>
+    notion.databases.query({
+      database_id: uuidFromID(USER_DB),
+      filter: {
+        and: [
+          {
+            property: 'email',
+            email: {
+              equals: callback.owner.user.person.email,
+            },
+          },
+        ],
+      },
+    }),
+  )
+  const user = users?.results?.[0] as U.Merge<
+    QueryDatabaseResponse['results'][0]
+  >
+  if (!user) {
+    throw new Error('Failed to get user')
+  }
+  const account = await throttledAPICall<U.Merge<CreatePageResponse>>(() =>
+    notion.pages.create({
+      parent: { database_id: uuidFromID(ACCOUNT_DB) },
+      properties: {
+        userId: {
+          relation: [{ id: user.id }],
+        },
+        type: {
+          select: { name: 'notion' },
+        },
+        provider: {
+          rich_text: [{ text: { content: callback.bot_id } }],
+        },
+        providerAccountId: {
+          title: [{ text: { content: callback.owner.user.id } }],
+        },
+        access_token: {
+          rich_text: [{ text: { content: callback.access_token } }],
+        },
+      },
+    }),
+  )
+  if (!account) {
+    throw new Error('Failed to create account')
+  }
+  const createdSpace = await throttledAPICall<U.Merge<CreatePageResponse>>(() =>
+    notion.pages.create({
+      parent: { database_id: uuidFromID(SPACE_DB) },
+      properties: {
+        spaceId: {
+          title: [{ text: { content: callback.workspace_id } }],
+        },
+        userId: {
+          relation: [{ id: user.id }],
+        },
+        accountId: {
+          relation: [{ id: account.id }],
+        },
+      },
+    }),
+  )
+  const spaceProps = await getProperties(notion, { page: createdSpace })
+  if (!createdSpace || !spaceProps) {
+    throw new Error('Failed to create space')
+  }
+  return {
+    id: createdSpace?.id,
+    ...parseSpace(spaceProps),
+  }
+}
+
 // #endregion
 
 // #region Page
@@ -661,6 +765,19 @@ export async function getRelations(
     id: uuidFromID(relations[idx]?.id) || null,
     name: richTextToPlainText(getProperty({ name: relation }, 'name', 'title')),
   }))
+}
+
+export function parseSpace(
+  page: Record<string, GetPagePropertyResponse> | null,
+): SpaceType | null {
+  if (!page) return null
+  return {
+    spaceId: richTextToPlainText(getProperty(page, 'spaceId', 'title')),
+    pageId: richTextToPlainText(getProperty(page, 'pageId', 'rich_text')),
+    tableId: richTextToPlainText(getProperty(page, 'tableId', 'rich_text')),
+    userId: getProperty(page, 'userId', 'relation')?.id,
+    accountId: getProperty(page, 'accountId', 'relation')?.id,
+  }
 }
 
 // #endregion
