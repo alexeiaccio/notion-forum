@@ -14,6 +14,7 @@ export default async function imageRoutes(req: NextRequest) {
   if (searchParams.get('width')) {
     url.searchParams.set('width', searchParams.get('width')!)
   }
+  url.searchParams.set('cache', 'v2')
   return fetch(url.toString(), {
     method: 'GET',
     headers: {
@@ -21,18 +22,6 @@ export default async function imageRoutes(req: NextRequest) {
     },
     redirect: 'manual',
   })
-  // return new Response(
-  //   JSON.stringify({
-  //     pathname: url.toString(),
-  //   }),
-  //   {
-  //     status: 200,
-  //     headers: {
-  //       'content-type': 'application/json',
-  //       'cache-control': 'public, s-maxage=1200, stale-while-revalidate=600',
-  //     },
-  //   },
-  // )
 }
 
 export const config = {

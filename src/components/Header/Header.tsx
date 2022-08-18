@@ -90,7 +90,10 @@ function Breadcrumbs() {
 }
 
 function User() {
-  const { data: session, isLoading } = trpc.proxy.auth.getSession.useQuery()
+  const { data: session, isLoading } = trpc.proxy.auth.getSession.useQuery(
+    undefined,
+    { refetchOnWindowFocus: false },
+  )
   const menu = useMenuState({ gutter: 8, placement: 'bottom-end' })
   if (isLoading) return <Button>...</Button>
   if (!session?.user)
@@ -102,7 +105,7 @@ function User() {
         as={Button}
         className="[&[aria-expanded='true']]:ring-1 [&[aria-expanded='true']]:ring-slate-400"
       >
-        {session.user.name || session.user.email?.split('@')[0]}
+        {session?.user.name || 'Account'}
       </MenuButton>
       <Menu
         state={menu}

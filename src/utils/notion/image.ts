@@ -30,7 +30,9 @@ export async function getUploadFileUrl(
   } catch (error) {
     console.error(error)
   }
-  if (response?.status !== 200) return
+  if (response?.status !== 200) {
+    throw new Error(response?.statusText || 'Cannot getUploadFileUrl')
+  }
   return response.json()
 }
 

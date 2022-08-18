@@ -1,15 +1,15 @@
-import { useIsFetching } from '@tanstack/react-query'
-import { Button, Form, FormInput, FormSubmit, useFormState } from 'ariakit'
+import { Form, FormInput, FormSubmit, useFormState } from 'ariakit'
+import axios from 'axios'
 import type {
   GetServerSidePropsContext,
   InferGetServerSidePropsType,
 } from 'next'
 import { unstable_getServerSession as getServerSession } from 'next-auth/next'
 import dynamic from 'next/dynamic'
-import { CSSProperties, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { nil } from 'tsdef'
-import { buttonStyles, Image, RichText } from '~/components'
+import { Button, buttonStyles, Image, RichText } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { authOptions as nextAuthOptions } from '~/pages/api/auth/[...nextauth]'
 import type { ContentType, UserType } from '~/utils/notion/types'
@@ -167,20 +167,29 @@ ProfilePage.getLayout = getLayout
 export default ProfilePage
 
 function ImageForm({ id, onSubmit }: { id: string; onSubmit: () => void }) {
+  const [percentage, setPercentage] = useState<number>(0)
   const file = useRef<File>()
   const form = useFormState({
     defaultValues: { url: '' },
   })
   const utils = trpc.proxy.useContext()
-  const { mutate: getUploadFileUrl } =
+  const { mutate: getUploadFileUrl, isLoading } =
     trpc.proxy.user.getUploadFileUrl.useMutation({
       async onSuccess(urls) {
         if (!urls || !file.current) return
         try {
-          await fetch(urls.signedPutUrl, {
-            method: 'PUT',
-            body: file.current,
-          })
+          await axios.put(
+            urls.signedPutUrl,
+            {
+              body: file.current,
+            },
+            {
+              onUploadProgress: (progressEvent) => {
+                const { loaded, total } = progressEvent
+                setPercentage(Math.floor((loaded * 100) / total))
+              },
+            },
+          )
           form.setValue('url', urls.signedGetUrl)
           file.current = undefined
         } catch (error) {
@@ -225,7 +234,20 @@ function ImageForm({ id, onSubmit }: { id: string; onSubmit: () => void }) {
     <Form state={form} className="flex gap-2">
       <FormInput name={form.names.url} hidden placeholder="Drop image" />
       <input type="file" onChange={handleUpload} />
-      <FormSubmit as={Button}>Send</FormSubmit>
+      {percentage > 0 && (
+        <div>
+          {percentage}
+          {'%'}
+        </div>
+      )}
+      <FormSubmit
+        as={Button}
+        disabled={
+          (percentage > 0 && percentage < 100) || !form.values.url || isLoading
+        }
+      >
+        Send
+      </FormSubmit>
     </Form>
   )
 }
