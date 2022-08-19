@@ -1,5 +1,7 @@
+import { Client, LogLevel } from '@notionhq/client'
 import {
   BlockObjectResponse,
+  CreateDatabaseResponse,
   CreatePageResponse,
   GetBlockResponse,
   GetPagePropertyResponse,
@@ -16,7 +18,7 @@ import { ProviderType } from 'next-auth/providers'
 import { U } from 'ts-toolbelt'
 import { nil, NonNil } from 'tsdef'
 import { env } from '../../server/env'
-import { notion } from './client'
+import { notion, notionVersion } from './client'
 import {
   BotType,
   ChildrenType,
@@ -32,12 +34,12 @@ import {
   getProperties,
   getPropertiesList,
   getProperty,
+  idFromUUID,
   parseMention,
   parseRichText,
   richTextBlockToPlainText,
   richTextToPlainText,
   throttledAPICall,
-  uuidFromID,
 } from './utils'
 
 type QueryDatabaseResult = U.Merge<QueryDatabaseResponse['results'][0]>
@@ -54,7 +56,7 @@ const PAGE_DB = env.NOTION_PAGE_DB_ID
 export async function getUser(id: string) {
   const user = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
     notion.pages.retrieve({
-      page_id: uuidFromID(id),
+      page_id: idFromUUID(id),
     }),
   )
   const userProps = await getProperties(notion, { page: user })
@@ -65,7 +67,7 @@ export async function getUser(id: string) {
 export async function getUserByEmail(email: string) {
   const users = await throttledAPICall<QueryDatabaseResponse>(() =>
     notion.databases.query({
-      database_id: uuidFromID(USER_DB),
+      database_id: idFromUUID(USER_DB),
       filter: {
         and: [
           {
@@ -95,7 +97,7 @@ export async function getUserByAccount({
 }) {
   const accounts = await throttledAPICall<QueryDatabaseResponse>(() =>
     notion.databases.query({
-      database_id: uuidFromID(ACCOUNT_DB),
+      database_id: idFromUUID(ACCOUNT_DB),
       filter: {
         and: [
           {
@@ -118,13 +120,13 @@ export async function getUserByAccount({
   if (!account) return null
   const users = await throttledAPICall<QueryDatabaseResponse>(() =>
     notion.databases.query({
-      database_id: uuidFromID(USER_DB),
+      database_id: idFromUUID(USER_DB),
       filter: {
         and: [
           {
             property: 'accounts',
             relation: {
-              contains: uuidFromID(account.id),
+              contains: idFromUUID(account.id),
             },
           },
         ],
@@ -142,7 +144,7 @@ export async function getUserByAccount({
 export async function getSessionAndUser(sessionToken: string) {
   const sessions = await throttledAPICall<QueryDatabaseResponse>(() =>
     notion.databases.query({
-      database_id: uuidFromID(SESSION_DB),
+      database_id: idFromUUID(SESSION_DB),
       filter: {
         and: [
           {
@@ -158,12 +160,12 @@ export async function getSessionAndUser(sessionToken: string) {
   if (!session || !sessionProps) return null
   const users = await throttledAPICall<QueryDatabaseResponse>(() =>
     notion.databases.query({
-      database_id: uuidFromID(USER_DB),
+      database_id: idFromUUID(USER_DB),
       filter: {
         and: [
           {
             property: 'sessions',
-            relation: { contains: uuidFromID(session.id) },
+            relation: { contains: idFromUUID(session.id) },
           },
         ],
       },
@@ -270,12 +272,12 @@ export async function getUserInfo(id: string | nil) {
   const [user, blocks] = await Promise.all([
     throttledAPICall<U.Merge<GetPageResponse>>(() =>
       notion.pages.retrieve({
-        page_id: uuidFromID(id),
+        page_id: idFromUUID(id),
       }),
     ),
     throttledAPICall<U.Merge<ListBlockChildrenResponse>>(() =>
       notion.blocks.children.list({
-        block_id: uuidFromID(id),
+        block_id: idFromUUID(id),
       }),
     ),
   ])
@@ -299,7 +301,7 @@ export async function updateUserName(id: string | nil, name: string) {
   if (!id) return null
   const updatedUser = await throttledAPICall<U.Merge<UpdatePageResponse>>(() =>
     notion.pages.update({
-      page_id: uuidFromID(id),
+      page_id: idFromUUID(id),
       properties: {
         name: {
           title: [
@@ -327,7 +329,7 @@ export async function updateUserImage(id: string | nil, url: string) {
   if (!id) return null
   const updatedUser = await throttledAPICall<U.Merge<UpdatePageResponse>>(() =>
     notion.pages.update({
-      page_id: uuidFromID(id),
+      page_id: idFromUUID(id),
       properties: {
         image: {
           files: [
@@ -397,13 +399,13 @@ export async function updateUserInfo(
 export async function getRole(userId: string) {
   const roles = await throttledAPICall<QueryDatabaseResponse>(() =>
     notion.databases.query({
-      database_id: uuidFromID(ROLE_DB),
+      database_id: idFromUUID(ROLE_DB),
       filter: {
         and: [
           {
             property: 'users',
             relation: {
-              contains: uuidFromID(userId),
+              contains: idFromUUID(userId),
             },
           },
         ],
@@ -424,13 +426,13 @@ export async function getRole(userId: string) {
 export async function getSpace(userId: string) {
   const spaces = await throttledAPICall<QueryDatabaseResponse>(() =>
     notion.databases.query({
-      database_id: uuidFromID(SPACE_DB),
+      database_id: idFromUUID(SPACE_DB),
       filter: {
         and: [
           {
             property: 'userId',
             relation: {
-              contains: uuidFromID(userId),
+              contains: idFromUUID(userId),
             },
           },
         ],
@@ -451,7 +453,7 @@ export async function getSpace(userId: string) {
 export async function connectSpace(callback: BotType) {
   const users = await throttledAPICall<QueryDatabaseResponse>(() =>
     notion.databases.query({
-      database_id: uuidFromID(USER_DB),
+      database_id: idFromUUID(USER_DB),
       filter: {
         and: [
           {
@@ -472,7 +474,7 @@ export async function connectSpace(callback: BotType) {
   }
   const account = await throttledAPICall<U.Merge<CreatePageResponse>>(() =>
     notion.pages.create({
-      parent: { database_id: uuidFromID(ACCOUNT_DB) },
+      parent: { database_id: idFromUUID(ACCOUNT_DB) },
       properties: {
         userId: {
           relation: [{ id: user.id }],
@@ -497,7 +499,7 @@ export async function connectSpace(callback: BotType) {
   }
   const createdSpace = await throttledAPICall<U.Merge<CreatePageResponse>>(() =>
     notion.pages.create({
-      parent: { database_id: uuidFromID(SPACE_DB) },
+      parent: { database_id: idFromUUID(SPACE_DB) },
       properties: {
         spaceId: {
           title: [{ text: { content: callback.workspace_id } }],
@@ -521,6 +523,147 @@ export async function connectSpace(callback: BotType) {
   }
 }
 
+export async function connectPage(
+  id: string,
+  pageId: string,
+  userId: string,
+): Promise<SpaceType | null> {
+  const accounts = await throttledAPICall<U.Merge<QueryDatabaseResponse>>(() =>
+    notion.databases.query({
+      database_id: idFromUUID(ACCOUNT_DB),
+      filter: {
+        and: [
+          {
+            property: 'userId',
+            relation: {
+              contains: userId,
+            },
+          },
+        ],
+      },
+    }),
+  )
+  const account = accounts?.results?.[0] as U.Merge<
+    QueryDatabaseResponse['results'][0]
+  >
+  if (!account) {
+    throw new Error('Failed to get account')
+  }
+  const accountProps = await getProperties(notion, {
+    page: account,
+    pick: ['access_token'],
+  })
+  const token = richTextToPlainText(
+    getProperty(accountProps, 'access_token', 'rich_text'),
+  )
+  if (!token) {
+    throw new Error('Failed to get account')
+  }
+  const notionBot = new Client({
+    auth: token,
+    notionVersion,
+    logLevel: LogLevel.DEBUG,
+  })
+  const connectedPage = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
+    notionBot.pages.retrieve({
+      page_id: idFromUUID(pageId),
+    }),
+  )
+  if (!connectedPage) {
+    throw new Error('Page not found')
+  }
+  const updatedSpaceWithPage = await throttledAPICall<
+    U.Merge<UpdatePageResponse>
+  >(() =>
+    notion.pages.update({
+      page_id: idFromUUID(id),
+      properties: {
+        pageId: {
+          rich_text: [{ text: { content: pageId } }],
+        },
+      },
+    }),
+  )
+  if (!updatedSpaceWithPage) {
+    throw new Error('Cannot connect page')
+  }
+  const pageProps = await getProperties(notion, {
+    page: updatedSpaceWithPage,
+    pick: ['tableId'],
+  })
+  if (richTextToPlainText(getProperty(pageProps, 'tableId', 'rich_text'))) {
+    const spaceWithPageProps = await getProperties(notion, {
+      page: updatedSpaceWithPage,
+    })
+    if (!spaceWithPageProps) {
+      throw new Error('Cannot get properties for space')
+    }
+    return {
+      id: updatedSpaceWithPage?.id,
+      ...parseSpace(spaceWithPageProps),
+    }
+  }
+  const children = await await throttledAPICall<
+    U.Merge<ListBlockChildrenResponse>
+  >(() =>
+    notionBot.blocks.children.list({
+      block_id: idFromUUID(connectedPage.id),
+    }),
+  )
+  let table: string | undefined = (
+    children.results as BlockObjectResponse[]
+  ).find(
+    (block) =>
+      block.type === 'child_database' &&
+      block.child_database.title === 'Drafts',
+  )?.id
+  if (!table) {
+    const createdTable = await throttledAPICall<
+      U.Merge<CreateDatabaseResponse>
+    >(() =>
+      notionBot.databases.create({
+        parent: { type: 'page_id', page_id: idFromUUID(connectedPage.id) },
+        title: [{ text: { content: 'Drafts' } }],
+        properties: {
+          title: { type: 'title', title: {} },
+          tags: { type: 'multi_select', multi_select: { options: [] } },
+        },
+      }),
+    )
+    if (createdTable) {
+      table = createdTable.id
+    }
+  }
+  if (!table) {
+    throw new Error('Table not created')
+  }
+  const updatedSpaceWithTable = await throttledAPICall<
+    U.Merge<UpdatePageResponse>
+  >(() =>
+    notion.pages.update({
+      page_id: idFromUUID(id),
+      properties: {
+        tableId: {
+          rich_text: [{ text: { content: table! } }],
+        },
+      },
+    }),
+  )
+  if (!updatedSpaceWithTable) {
+    throw new Error('Failed to update space')
+  }
+  const spaceWithTableProps = await getProperties(notion, {
+    page: updatedSpaceWithPage,
+  })
+  if (!spaceWithTableProps) {
+    throw new Error('Cannot get properties for space')
+  }
+  return {
+    id: updatedSpaceWithPage?.id,
+    ...parseSpace(spaceWithTableProps),
+  }
+}
+
 // #endregion
 
 // #region Page
@@ -533,7 +676,7 @@ export async function getPagesList(
 ): Promise<PagesList> {
   const pages = await throttledAPICall<U.Merge<QueryDatabaseResponse>>(() =>
     notion.databases.query({
-      database_id: uuidFromID(PAGE_DB),
+      database_id: idFromUUID(PAGE_DB),
       sorts: [{ timestamp: 'last_edited_time', direction: 'ascending' }],
       page_size: 10,
       start_cursor: cursor || undefined,
@@ -543,7 +686,7 @@ export async function getPagesList(
               or: [
                 {
                   property: 'authors',
-                  relation: { contains: uuidFromID(filter.author) },
+                  relation: { contains: idFromUUID(filter.author) },
                 },
               ],
             },
@@ -555,7 +698,7 @@ export async function getPagesList(
     (pages.results as PageObjectResponse[]).map(async (page) => {
       const pageProps = await getProperties(notion, { page })
       return {
-        id: uuidFromID(page.id),
+        id: idFromUUID(page.id),
         created: page.created_time,
         updated: page.last_edited_time,
         ...parsePage(pageProps),
@@ -574,13 +717,13 @@ export async function getPage(
 ): Promise<RawPageType | null> {
   const page = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
     notion.pages.retrieve({
-      page_id: uuidFromID(id),
+      page_id: idFromUUID(id),
     }),
   )
   if (!page) return null
   const pageProps = await getProperties(notion, { page })
   return {
-    id: uuidFromID(page.id),
+    id: idFromUUID(page.id),
     created: page.created_time,
     updated: page.last_edited_time,
     ...parsePage(pageProps),
@@ -592,7 +735,7 @@ export async function getBlock(
 ): Promise<NonNil<ContentAndCommentsType['comments']>[number] | null> {
   const block = await throttledAPICall<U.Merge<GetBlockResponse>>(() =>
     notion.blocks.retrieve({
-      block_id: uuidFromID(id),
+      block_id: idFromUUID(id),
     }),
   )
   if (!block) return null
@@ -605,7 +748,7 @@ export async function getBlockChildren(
   const blocks = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
     () =>
       notion.blocks.children.list({
-        block_id: uuidFromID(id),
+        block_id: idFromUUID(id),
       }),
   )
   if (!id || !blocks) return null
@@ -620,7 +763,7 @@ export async function postComment(
   const comment = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
     () =>
       notion.blocks.children.append({
-        block_id: uuidFromID(blockId),
+        block_id: idFromUUID(blockId),
         children: [
           {
             type: 'toggle',
@@ -681,7 +824,7 @@ export function parseBlocks(
       switch (block.type) {
         case 'paragraph':
           content.push({
-            id: uuidFromID(block.id),
+            id: idFromUUID(block.id),
             type: 'paragraph',
             created_time: block.created_time,
             edited_time: block.last_edited_time,
@@ -692,7 +835,7 @@ export function parseBlocks(
           break
         case 'heading_1':
           content.push({
-            id: uuidFromID(block.id),
+            id: idFromUUID(block.id),
             type: 'h1',
             created_time: block.created_time,
             edited_time: block.last_edited_time,
@@ -703,7 +846,7 @@ export function parseBlocks(
           break
         case 'heading_2':
           content.push({
-            id: uuidFromID(block.id),
+            id: idFromUUID(block.id),
             type: 'h2',
             created_time: block.created_time,
             edited_time: block.last_edited_time,
@@ -714,7 +857,7 @@ export function parseBlocks(
           break
         case 'heading_3':
           content.push({
-            id: uuidFromID(block.id),
+            id: idFromUUID(block.id),
             type: 'h3',
             created_time: block.created_time,
             edited_time: block.last_edited_time,
@@ -725,7 +868,7 @@ export function parseBlocks(
           break
         case 'toggle':
           comments.push({
-            id: uuidFromID(block.id),
+            id: idFromUUID(block.id),
             header: parseMention(block.toggle.rich_text),
           })
           break
@@ -746,7 +889,7 @@ export async function getRelations(
     (ids || []).map(({ id }) =>
       throttledAPICall<U.Merge<GetPageResponse>>(() =>
         notion.pages.retrieve({
-          page_id: uuidFromID(id),
+          page_id: idFromUUID(id),
         }),
       ),
     ),
@@ -755,14 +898,14 @@ export async function getRelations(
     relations.map((relation, idx) =>
       throttledAPICall<GetPagePropertyResponse>(() =>
         notion.pages.properties.retrieve({
-          page_id: uuidFromID(relations[idx]?.id),
+          page_id: idFromUUID(relations[idx]?.id),
           property_id: relation.properties.name!.id,
         }),
       ),
     ),
   )
   return relationsProps.map((relation, idx) => ({
-    id: uuidFromID(relations[idx]?.id) || null,
+    id: idFromUUID(relations[idx]?.id) || null,
     name: richTextToPlainText(getProperty({ name: relation }, 'name', 'title')),
   }))
 }

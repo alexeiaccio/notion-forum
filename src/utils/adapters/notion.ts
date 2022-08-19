@@ -14,7 +14,7 @@ import {
   parseUser,
   parseVerificationToken,
 } from '../notion/api'
-import { getProperties, throttledAPICall, uuidFromID } from '../notion/utils'
+import { getProperties, throttledAPICall, idFromUUID } from '../notion/utils'
 
 const USER_DB = env.NOTION_USER_DB_ID!
 const ACCOUNT_DB = env.NOTION_ACCOUNT_DB_ID!
@@ -68,7 +68,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
       const createdUser = await throttledAPICall<U.Merge<CreatePageResponse>>(
         () =>
           client.pages.create({
-            parent: { database_id: uuidFromID(USER_DB) },
+            parent: { database_id: idFromUUID(USER_DB) },
             properties,
           }),
       )
@@ -81,7 +81,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
     async getUser(id) {
       const user = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
         client.pages.retrieve({
-          page_id: uuidFromID(id),
+          page_id: idFromUUID(id),
         }),
       )
       const userProps = await getProperties(client, { page: user })
@@ -91,7 +91,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
     async getUserByEmail(email) {
       const users = await throttledAPICall<QueryDatabaseResponse>(() =>
         client.databases.query({
-          database_id: uuidFromID(USER_DB),
+          database_id: idFromUUID(USER_DB),
           filter: {
             and: [
               {
@@ -114,7 +114,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
     async getUserByAccount({ providerAccountId, provider }) {
       const accounts = await throttledAPICall<QueryDatabaseResponse>(() =>
         client.databases.query({
-          database_id: uuidFromID(ACCOUNT_DB),
+          database_id: idFromUUID(ACCOUNT_DB),
           filter: {
             and: [
               {
@@ -137,13 +137,13 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
       if (!account) return null
       const users = await throttledAPICall<QueryDatabaseResponse>(() =>
         client.databases.query({
-          database_id: uuidFromID(USER_DB),
+          database_id: idFromUUID(USER_DB),
           filter: {
             and: [
               {
                 property: 'accounts',
                 relation: {
-                  contains: uuidFromID(account.id),
+                  contains: idFromUUID(account.id),
                 },
               },
             ],
@@ -209,7 +209,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
       const deletedUser = await throttledAPICall<U.Merge<UpdatePageResponse>>(
         () =>
           client.pages.update({
-            page_id: uuidFromID(userId),
+            page_id: idFromUUID(userId),
             archived: true,
           }),
       )
@@ -287,7 +287,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
         U.Merge<CreatePageResponse>
       >(() =>
         client.pages.create({
-          parent: { database_id: uuidFromID(ACCOUNT_DB) },
+          parent: { database_id: idFromUUID(ACCOUNT_DB) },
           properties,
         }),
       )
@@ -300,7 +300,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
     async unlinkAccount({ providerAccountId, provider }) {
       const accounts = await throttledAPICall<QueryDatabaseResponse>(() =>
         client.databases.query({
-          database_id: uuidFromID(ACCOUNT_DB),
+          database_id: idFromUUID(ACCOUNT_DB),
           filter: {
             and: [
               {
@@ -319,7 +319,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
           U.Merge<UpdatePageResponse>
         >(() =>
           client.pages.update({
-            page_id: uuidFromID(account.id),
+            page_id: idFromUUID(account.id),
             archived: true,
           }),
         )
@@ -331,7 +331,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
         U.Merge<CreatePageResponse>
       >(() =>
         client.pages.create({
-          parent: { database_id: uuidFromID(SESSION_DB) },
+          parent: { database_id: idFromUUID(SESSION_DB) },
           properties: {
             userId: {
               relation: [{ id: userId }],
@@ -354,7 +354,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
     async getSessionAndUser(sessionToken) {
       const sessions = await throttledAPICall<QueryDatabaseResponse>(() =>
         client.databases.query({
-          database_id: uuidFromID(SESSION_DB),
+          database_id: idFromUUID(SESSION_DB),
           filter: {
             and: [
               {
@@ -370,12 +370,12 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
       if (!session || !sessionProps) return null
       const users = await throttledAPICall<QueryDatabaseResponse>(() =>
         client.databases.query({
-          database_id: uuidFromID(USER_DB),
+          database_id: idFromUUID(USER_DB),
           filter: {
             and: [
               {
                 property: 'sessions',
-                relation: { contains: uuidFromID(session.id) },
+                relation: { contains: idFromUUID(session.id) },
               },
             ],
           },
@@ -392,7 +392,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
     async updateSession({ sessionToken }) {
       const sessions = await throttledAPICall<QueryDatabaseResponse>(() =>
         client.databases.query({
-          database_id: uuidFromID(SESSION_DB),
+          database_id: idFromUUID(SESSION_DB),
           filter: {
             and: [
               {
@@ -409,7 +409,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
         U.Merge<UpdatePageResponse>
       >(() =>
         client.pages.update({
-          page_id: uuidFromID(session.id),
+          page_id: idFromUUID(session.id),
           properties: {
             sessionToken: {
               title: [{ text: { content: sessionToken } }],
@@ -426,7 +426,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
     async deleteSession(sessionToken) {
       const sessions = await throttledAPICall<QueryDatabaseResponse>(() =>
         client.databases.query({
-          database_id: uuidFromID(SESSION_DB),
+          database_id: idFromUUID(SESSION_DB),
           filter: {
             and: [
               {
@@ -441,7 +441,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
       if (!session) return
       const deletedSession = await throttledAPICall<UpdatePageResponse>(() =>
         client.pages.update({
-          page_id: uuidFromID(session.id),
+          page_id: idFromUUID(session.id),
           archived: true,
         }),
       )
@@ -452,7 +452,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
         U.Merge<CreatePageResponse>
       >(() =>
         client.pages.create({
-          parent: { database_id: uuidFromID(VERIFICATION_TOKEN_DB) },
+          parent: { database_id: idFromUUID(VERIFICATION_TOKEN_DB) },
           properties: {
             identifier: {
               title: [{ text: { content: identifier } }],
@@ -477,7 +477,7 @@ export default function NotionAdapter(client: Client, options = {}): Adapter {
         U.Merge<QueryDatabaseResponse>
       >(() =>
         client.databases.query({
-          database_id: uuidFromID(VERIFICATION_TOKEN_DB),
+          database_id: idFromUUID(VERIFICATION_TOKEN_DB),
           filter: {
             and: [
               {

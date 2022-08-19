@@ -92,7 +92,7 @@ function Breadcrumbs() {
 function User() {
   const { data: session, isLoading } = trpc.proxy.auth.getSession.useQuery(
     undefined,
-    { refetchOnWindowFocus: false },
+    { refetchOnWindowFocus: false, requestContext: { skipBatch: true } },
   )
   const menu = useMenuState({ gutter: 8, placement: 'bottom-end' })
   if (isLoading) return <Button>...</Button>

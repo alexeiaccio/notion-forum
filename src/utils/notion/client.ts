@@ -1,14 +1,14 @@
-import { Client } from '@notionhq/client'
+import { Client, LogLevel } from '@notionhq/client'
 import type { QueryDatabaseParameters } from '@notionhq/client/build/src/api-endpoints'
 import { env } from '../../server/env'
-import { throttledAPICall, uuidFromID } from './utils'
+import { throttledAPICall, idFromUUID } from './utils'
 
 export const notionVersion = '2022-06-28'
 
 export const notion = new Client({
   auth: env.NOTION_KEY,
   notionVersion,
-  // logLevel: LogLevel.DEBUG,
+  logLevel: LogLevel.DEBUG,
 })
 
 // export const fetchAPI = (<T>() =>

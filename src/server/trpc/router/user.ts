@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { env } from '~/server/env'
 import { revalidateCached } from '~/utils/getWithCache'
 import {
+  connectPage,
   getSpace,
   getUser,
   getUserInfo,
@@ -157,4 +158,25 @@ export const userRouter = t.router({
   connectSpace: authedProcedure.mutation(async ({ ctx }) => {
     if (!ctx.session.user?.id) return null
   }),
+  connectPage: authedProcedure
+    .input(
+      z
+        .object({
+          spaceId: z.string().nullish(),
+          pageId: z.string().nullish(),
+        })
+        .nullish(),
+    )
+    .output(spaceType.nullish())
+    .mutation(async ({ input, ctx }) => {
+      if (!input?.spaceId || !input?.pageId || !ctx.session?.user.id) {
+        return null
+      }
+      const res = await connectPage(
+        input.spaceId,
+        input.pageId,
+        ctx.session.user.id,
+      )
+      return res
+    }),
 })

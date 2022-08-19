@@ -24,5 +24,7 @@
   },
   "editor.quickSuggestions": {
     "strings": true
-  }
+  },
+  "editor.tabCompletion": "on",
+  "diffEditor.codeLens": true
 }

@@ -1,18 +1,16 @@
 import { Form, FormInput, FormSubmit, useFormState } from 'ariakit'
-import axios from 'axios'
 import type {
   GetServerSidePropsContext,
   InferGetServerSidePropsType,
 } from 'next'
-import { unstable_getServerSession as getServerSession } from 'next-auth/next'
 import dynamic from 'next/dynamic'
 import { useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { nil } from 'tsdef'
 import { Button, buttonStyles, Image, RichText } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
-import { authOptions as nextAuthOptions } from '~/pages/api/auth/[...nextauth]'
-import type { ContentType, UserType } from '~/utils/notion/types'
+import { getSessionContext } from '~/server/trpc/context'
+import type { ContentType, SpaceType, UserType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 
 const InfoEditor = dynamic(
@@ -21,12 +19,12 @@ const InfoEditor = dynamic(
 )
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
-  const session = await getServerSession(ctx.req, ctx.res, nextAuthOptions)
+  const session = await getSessionContext(ctx)
 
   if (!session) {
     return {
       redirect: {
-        destination: '/api/auth/login',
+        destination: '/api/auth/signin',
         permanent: false,
       },
     }
@@ -158,9 +156,7 @@ function ProfilePage({
           Add Bio
         </Button>
       ) : null}
-      <div>
-        <Space />
-      </div>
+      <Space />
     </>
   )
 }
@@ -181,18 +177,10 @@ function ImageForm({ id, onSubmit }: { id: string; onSubmit: () => void }) {
       async onSuccess(urls) {
         if (!urls || !file.current) return
         try {
-          await axios.put(
-            urls.signedPutUrl,
-            {
-              body: file.current,
-            },
-            {
-              onUploadProgress: (progressEvent) => {
-                const { loaded, total } = progressEvent
-                setPercentage(Math.floor((loaded * 100) / total))
-              },
-            },
-          )
+          await fetch(urls.signedPutUrl, {
+            method: 'PUT',
+            body: file.current,
+          })
           form.setValue('url', urls.signedGetUrl)
           file.current = undefined
         } catch (error) {
@@ -236,12 +224,19 @@ function ImageForm({ id, onSubmit }: { id: string; onSubmit: () => void }) {
   return (
     <Form state={form} className="flex gap-2">
       <FormInput name={form.names.url} hidden placeholder="Drop image" />
-      <input type="file" onChange={handleUpload} />
-      {percentage > 0 && (
-        <div>
-          {percentage}
-          {'%'}
-        </div>
+      {form.values.url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={form.values.url} className="object-cover w-36 h-36" alt="" />
+      ) : (
+        <>
+          <input type="file" onChange={handleUpload} />
+          {percentage > 0 && (
+            <div>
+              {percentage}
+              {'%'}
+            </div>
+          )}
+        </>
       )}
       <FormSubmit
         as={Button}
@@ -350,10 +345,48 @@ function InfoForm({
 }
 
 function Space() {
-  const { data, isLoading } = trpc.proxy.user.getSpace.useQuery()
+  const { data, isLoading } = trpc.proxy.user.getSpace.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  })
 
   if (data?.type === 'url') {
     return <a href={data.url}>Connect to Notion</a>
   }
-  return <pre>{JSON.stringify(data)}</pre>
+  return (
+    <div>
+      <div>Space: {data?.spaceId}</div>
+      {data?.pageId ? (
+        <div>Page: {data.pageId}</div>
+      ) : (
+        <PageForm id={data?.id} />
+      )}
+      {data?.tableId ? <div>Table: {data.tableId}</div> : null}
+    </div>
+  )
+}
+
+function PageForm({ id }: { id: string | nil }) {
+  const utils = trpc.proxy.useContext()
+  const { mutate } = trpc.proxy.user.connectPage.useMutation({
+    onSuccess(nextData) {
+      utils.user.getSpace.setData(() => {
+        if (!nextData) return null
+        return { ...nextData, type: 'space' }
+      })
+      utils.user.getSpace.invalidate()
+    },
+  })
+  const form = useFormState({
+    defaultValues: { page: '' },
+  })
+  form.useSubmit(() => {
+    if (!form.values.page) return
+    mutate({ spaceId: id, pageId: form.values.page })
+  })
+  return (
+    <Form state={form}>
+      <FormInput name={form.names.page} />
+      <FormSubmit as={Button}>Set Page</FormSubmit>
+    </Form>
+  )
 }

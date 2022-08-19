@@ -21,7 +21,7 @@ export async function throttledAPICall<T>(
   return res
 }
 
-export function uuidFromID(id: string | null | undefined): string {
+export function idFromUUID(id: string | null | undefined): string {
   return id?.replace(/-/g, '') ?? ''
 }
 
@@ -141,7 +141,7 @@ export function parseMention(
     if (text.type === 'mention') {
       if (text.mention.type === 'page') {
         result.author = text.plain_text
-        result.relation = uuidFromID(text.mention.page.id)
+        result.relation = idFromUUID(text.mention.page.id)
       }
       if (text.mention.type === 'date') {
         result.date = text.mention.date.start

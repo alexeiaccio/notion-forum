@@ -1,4 +1,4 @@
-import { httpBatchLink, httpLink, loggerLink } from '@trpc/client'
+import { httpBatchLink, httpLink, loggerLink, splitLink } from '@trpc/client'
 import { setupTRPC } from '@trpc/next'
 import type { inferProcedureInput, inferProcedureOutput } from '@trpc/server'
 import superjson from 'superjson'
@@ -26,17 +26,28 @@ export const trpc = setupTRPC<AppRouter>({
       /**
        * @link https://trpc.io/docs/links
        */
-      // links: [
-      //   // adds pretty logs to your console in development and logs errors in production
-      //   loggerLink({
-      //     enabled: (opts) =>
-      //       process.env.NODE_ENV === "development" ||
-      //       (opts.direction === "down" && opts.result instanceof Error),
-      //   }),
-      //   // httpLink({
-      //   //   url: "/api/trpc",
-      //   // }),
-      // ],
+      links: [
+        // adds pretty logs to your console in development and logs errors in production
+        loggerLink({
+          enabled: (opts) =>
+            process.env.NODE_ENV === 'development' ||
+            (opts.direction === 'down' && opts.result instanceof Error),
+        }),
+        splitLink({
+          condition(op) {
+            // check for context property `skipBatch`
+            return op.context.skipBatch === true
+          },
+          // when condition is true, use normal request
+          true: httpLink({
+            url: '/api/trpc',
+          }),
+          // when condition is false, use batching
+          false: httpBatchLink({
+            url: '/api/trpc',
+          }),
+        }),
+      ],
       /**
        * @link https://react-query.tanstack.com/reference/QueryClient
        */
