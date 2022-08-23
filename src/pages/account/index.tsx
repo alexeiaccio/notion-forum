@@ -4,6 +4,7 @@ import type {
   InferGetServerSidePropsType,
 } from 'next'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { useRef, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { nil } from 'tsdef'
@@ -360,7 +361,16 @@ function Space() {
       ) : (
         <PageForm id={data?.id} />
       )}
-      {data?.tableId ? <div>Table: {data.tableId}</div> : null}
+      {data?.tableId ? (
+        <>
+          <div>Table: {data.tableId}</div>
+          <div>
+            <Link href="/account/draft" passHref>
+              <a>Drafts</a>
+            </Link>
+          </div>
+        </>
+      ) : null}
     </div>
   )
 }

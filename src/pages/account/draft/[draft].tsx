@@ -64,7 +64,13 @@ function Page({
           <RichText key={block.id} content={block} />
         ))}
       </article>
-      <PublishDraft pageId={page?.id} />
+      {page?.published ? (
+        <Link href={`/page/${page.published}`} passHref>
+          <a>Open page</a>
+        </Link>
+      ) : (
+        <PublishDraft pageId={page?.id} />
+      )}
     </>
   )
 }
@@ -74,7 +80,12 @@ Page.getLayout = getLayout
 export default Page
 
 function PublishDraft({ pageId }: { pageId: string | nil }) {
-  const { mutate, data } = trpc.proxy.user.publishDraft.useMutation()
+  const utils = trpc.proxy.useContext()
+  const { mutate, data } = trpc.proxy.user.publishDraft.useMutation({
+    onSuccess: () => {
+      utils.page.getPagesList.invalidate()
+    },
+  })
   if (data) {
     return (
       <Link href={`/page/${data}`} passHref>

@@ -94,6 +94,7 @@ export const rawPageType = z.object({
     .nullish(),
   created: z.string().nullish(),
   updated: z.string().nullish(),
+  published: z.string().nullish(),
 })
 export type RawPageType = z.infer<typeof rawPageType>
 

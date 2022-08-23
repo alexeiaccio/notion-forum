@@ -561,7 +561,7 @@ export async function getNotionBot(userId: string): Promise<Client> {
   const notionBot = new Client({
     auth: token,
     notionVersion,
-    logLevel: LogLevel.DEBUG,
+    logLevel: LogLevel.ERROR,
   })
   return notionBot
 }
@@ -635,6 +635,7 @@ export async function connectPage(
         properties: {
           title: { type: 'title', title: {} },
           tags: { type: 'multi_select', multi_select: { options: [] } },
+          published: { type: 'rich_text', rich_text: {} },
         },
       }),
     )
@@ -821,7 +822,7 @@ export async function publishDraft(
       page_id: idFromUUID(id),
     }),
   )
-  if (!page) return null
+  invariant(page, 'Draft not found')
   const pageProps = await getProperties(notionBot, { page, pick: ['title'] })
   const blocks = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
     () =>
@@ -873,6 +874,18 @@ export async function publishDraft(
       ),
     }),
   )
+  invariant(createdPage, 'Page not created')
+  const updatedPage = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
+    notionBot.pages.update({
+      page_id: idFromUUID(id),
+      properties: {
+        published: {
+          rich_text: [{ text: { content: createdPage.id } }],
+        },
+      },
+    }),
+  )
+  invariant(updatedPage, 'Draft not updated')
   return createdPage?.id
 }
 
@@ -889,7 +902,7 @@ export async function getPagesList(
   const pages = await throttledAPICall<U.Merge<QueryDatabaseResponse>>(() =>
     notion.databases.query({
       database_id: idFromUUID(PAGE_DB),
-      sorts: [{ timestamp: 'last_edited_time', direction: 'ascending' }],
+      sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
       page_size: 10,
       start_cursor: cursor || undefined,
       ...(filter
@@ -1022,6 +1035,9 @@ export function parsePage(
     title: richTextToPlainText(getProperty(page, 'title', 'title')),
     authors: getPropertiesList(page, 'authors', 'relation'),
     tags: getProperty(page, 'tags', 'multi_select'),
+    published: idFromUUID(
+      richTextToPlainText(getProperty(page, 'published', 'rich_text')),
+    ),
   }
 }
 
