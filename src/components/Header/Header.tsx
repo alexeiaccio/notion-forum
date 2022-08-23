@@ -32,7 +32,7 @@ function Breadcrumbs() {
     },
     {
       enabled: Boolean(query.page),
-      keepPreviousData: true,
+      keepPreviousData: false,
       staleTime: Infinity,
       cacheTime: Infinity,
       refetchOnWindowFocus: false,

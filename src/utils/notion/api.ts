@@ -15,6 +15,7 @@ import {
 import type { Account } from 'next-auth'
 import { VerificationToken } from 'next-auth/adapters'
 import { ProviderType } from 'next-auth/providers'
+import invariant from 'tiny-invariant'
 import { U } from 'ts-toolbelt'
 import { nil, NonNil } from 'tsdef'
 import { env } from '../../server/env'
@@ -23,10 +24,12 @@ import {
   BotType,
   ChildrenType,
   ContentAndCommentsType,
+  ContentType,
   PagesList,
   ParagraphType,
   RawPageType,
   RelationType,
+  RichTextRequestSchema,
   SpaceType,
 } from './types'
 import {
@@ -523,11 +526,7 @@ export async function connectSpace(callback: BotType) {
   }
 }
 
-export async function connectPage(
-  id: string,
-  pageId: string,
-  userId: string,
-): Promise<SpaceType | null> {
+export async function getNotionBot(userId: string): Promise<Client> {
   const accounts = await throttledAPICall<U.Merge<QueryDatabaseResponse>>(() =>
     notion.databases.query({
       database_id: idFromUUID(ACCOUNT_DB),
@@ -564,6 +563,15 @@ export async function connectPage(
     notionVersion,
     logLevel: LogLevel.DEBUG,
   })
+  return notionBot
+}
+
+export async function connectPage(
+  id: string,
+  pageId: string,
+  userId: string,
+): Promise<SpaceType | null> {
+  const notionBot = await getNotionBot(userId)
   const connectedPage = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
     notionBot.pages.retrieve({
       page_id: idFromUUID(pageId),
@@ -662,6 +670,210 @@ export async function connectPage(
     id: updatedSpaceWithPage?.id,
     ...parseSpace(spaceWithTableProps),
   }
+}
+
+export async function getDraftsTable(userId: string): Promise<string> {
+  const spaces = await throttledAPICall<QueryDatabaseResponse>(() =>
+    notion.databases.query({
+      database_id: idFromUUID(SPACE_DB),
+      filter: {
+        and: [
+          {
+            property: 'userId',
+            relation: {
+              contains: idFromUUID(userId),
+            },
+          },
+        ],
+      },
+    }),
+  )
+  const space = spaces?.results?.[0] as U.Merge<
+    QueryDatabaseResponse['results'][0]
+  >
+  const spaceProps = await getProperties(notion, {
+    page: space,
+    pick: ['tableId'],
+  })
+  const tableId = richTextToPlainText(
+    getProperty(spaceProps, 'tableId', 'rich_text'),
+  )
+  invariant(tableId, 'Failed to get space')
+  return tableId
+}
+
+export async function getDraftsList(
+  userId: string,
+  cursor?: string | nil,
+  filter?: {
+    author?: string | nil
+  },
+): Promise<PagesList> {
+  const notionBot = await getNotionBot(userId)
+  const tableId = await getDraftsTable(userId)
+  const pages = await throttledAPICall<U.Merge<QueryDatabaseResponse>>(() =>
+    notionBot.databases.query({
+      database_id: idFromUUID(tableId),
+      sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
+      page_size: 10,
+      start_cursor: cursor || undefined,
+      ...(filter
+        ? {
+            filter: {
+              or: [
+                {
+                  property: 'authors',
+                  relation: { contains: idFromUUID(filter.author) },
+                },
+              ],
+            },
+          }
+        : {}),
+    }),
+  )
+  const results = await Promise.all(
+    (pages.results as PageObjectResponse[]).map(async (page) => {
+      const pageProps = await getProperties(notionBot, { page })
+      return {
+        id: idFromUUID(page.id),
+        created: page.created_time,
+        updated: page.last_edited_time,
+        ...parsePage(pageProps),
+      }
+    }),
+  )
+  return {
+    results,
+    hasMore: pages.has_more,
+    nextCursor: pages.next_cursor,
+  }
+}
+
+export async function getDraft(
+  userId: string,
+  id: string | undefined,
+): Promise<RawPageType | null> {
+  const notionBot = await getNotionBot(userId)
+  const page = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
+    notionBot.pages.retrieve({
+      page_id: idFromUUID(id),
+    }),
+  )
+  if (!page) return null
+  const pageProps = await getProperties(notionBot, { page })
+  return {
+    id: idFromUUID(page.id),
+    created: page.created_time,
+    updated: page.last_edited_time,
+    ...parsePage(pageProps),
+  }
+}
+
+export async function getDraftContent(
+  userId: string,
+  id: string | nil,
+): Promise<ContentType[] | nil> {
+  const notionBot = await getNotionBot(userId)
+  const blocks = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
+    () =>
+      notionBot.blocks.children.list({
+        block_id: idFromUUID(id),
+      }),
+  )
+  return parseBlocks(blocks.results as BlockObjectResponse[]).content
+}
+
+export async function createDraft(
+  userId: string,
+  children: ChildrenType,
+  title?: string | nil,
+): Promise<RawPageType | null> {
+  const notionBot = await getNotionBot(userId)
+  const tableId = await getDraftsTable(userId)
+  const page = await throttledAPICall<U.Merge<CreatePageResponse>>(() =>
+    notionBot.pages.create({
+      parent: { type: 'database_id', database_id: idFromUUID(tableId) },
+      properties: {
+        title: [
+          { text: { content: title || `Draft: ${new Date().toISOString()}` } },
+        ],
+      },
+      children,
+    }),
+  )
+  if (!page) return null
+  const pageProps = await getProperties(notionBot, { page })
+  return {
+    id: idFromUUID(page.id),
+    created: page.created_time,
+    updated: page.last_edited_time,
+    ...parsePage(pageProps),
+  }
+}
+
+export async function publishDraft(
+  userId: string,
+  id: string | nil,
+): Promise<string | nil> {
+  const notionBot = await getNotionBot(userId)
+  const page = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
+    notionBot.pages.retrieve({
+      page_id: idFromUUID(id),
+    }),
+  )
+  if (!page) return null
+  const pageProps = await getProperties(notionBot, { page, pick: ['title'] })
+  const blocks = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
+    () =>
+      notionBot.blocks.children.list({
+        block_id: idFromUUID(id),
+      }),
+  )
+  const createdPage = await throttledAPICall<U.Merge<CreatePageResponse>>(() =>
+    notion.pages.create({
+      parent: { type: 'database_id', database_id: PAGE_DB },
+      properties: {
+        title: [
+          {
+            text: {
+              content:
+                getProperty(pageProps, 'title', 'title')?.plain_text ||
+                'No title',
+            },
+          },
+        ],
+      },
+      children: (blocks.results as BlockObjectResponse[]).reduce<ChildrenType>(
+        (acc, block) => {
+          switch (block.type) {
+            case 'paragraph':
+              acc.push({
+                paragraph: {
+                  rich_text: block.paragraph
+                    .rich_text as RichTextRequestSchema[],
+                  color: block.paragraph.color,
+                },
+              })
+              break
+            case 'heading_3':
+              acc.push({
+                heading_3: {
+                  rich_text: block.heading_3
+                    .rich_text as RichTextRequestSchema[],
+                  color: block.heading_3.color,
+                },
+              })
+              break
+            default:
+              break
+          }
+          return acc
+        },
+        [],
+      ),
+    }),
+  )
+  return createdPage?.id
 }
 
 // #endregion

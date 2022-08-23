@@ -3,9 +3,15 @@ import { env } from '~/server/env'
 import { revalidateCached } from '~/utils/getWithCache'
 import {
   connectPage,
+  createDraft,
+  getDraft,
+  getDraftContent,
+  getDraftsList,
+  getRelations,
   getSpace,
   getUser,
   getUserInfo,
+  publishDraft,
   updateUserImage,
   updateUserInfo,
   updateUserName,
@@ -13,9 +19,12 @@ import {
 import { getUploadFileUrl, uploadUrl } from '~/utils/notion/image'
 import {
   ChildrenType,
+  contentAndCommentsType,
   contentType,
+  pagesList,
+  pageType,
   ParagraphType,
-  paragraphType,
+  rawPageType,
   spaceType,
   userType,
 } from '~/utils/notion/types'
@@ -177,6 +186,63 @@ export const userRouter = t.router({
         input.pageId,
         ctx.session.user.id,
       )
+      return res
+    }),
+  getDraftsList: authedProcedure
+    .input(z.object({ cursor: z.string().nullish() }).nullish())
+    .output(pagesList.nullish())
+    .query(async ({ input, ctx }) => {
+      if (!ctx.session.user?.id) return null
+      const res = await getDraftsList(ctx.session.user.id, input?.cursor)
+      return res
+    }),
+  getDraft: authedProcedure
+    .input(z.object({ id: z.string().nullish() }).nullish())
+    .output(contentAndCommentsType.and(pageType).nullish())
+    .query(async ({ input, ctx }) => {
+      if (!input?.id || !ctx.session.user?.id) return null
+      const [page, content] = await Promise.all([
+        getDraft(ctx.session.user.id, input.id!),
+        getDraftContent(ctx.session.user.id, input.id),
+      ])
+      const authors = await getRelations(page?.authors)
+      return { ...page, authors, content }
+    }),
+  createDraft: authedProcedure
+    .input(
+      z
+        .object({
+          title: z.string().nullish(),
+          draft: z.string().nullish(),
+        })
+        .nullish(),
+    )
+    .output(rawPageType.nullish())
+    .mutation(async ({ input, ctx }) => {
+      if (!input?.draft || !ctx.session?.user.id) {
+        return null
+      }
+      const res = await createDraft(
+        ctx.session?.user.id,
+        JSON.parse(input.draft) as ChildrenType,
+        input.title,
+      )
+      return res
+    }),
+  publishDraft: authedProcedure
+    .input(
+      z
+        .object({
+          pageId: z.string().nullish(),
+        })
+        .nullish(),
+    )
+    .output(z.string().nullish())
+    .mutation(async ({ input, ctx }) => {
+      if (!input?.pageId || !ctx.session?.user.id) {
+        return null
+      }
+      const res = await publishDraft(ctx.session.user.id, input.pageId)
       return res
     }),
 })

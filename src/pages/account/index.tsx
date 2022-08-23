@@ -9,8 +9,8 @@ import { twMerge } from 'tailwind-merge'
 import { nil } from 'tsdef'
 import { Button, buttonStyles, Image, RichText } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
-import { getSessionContext } from '~/server/trpc/context'
-import type { ContentType, SpaceType, UserType } from '~/utils/notion/types'
+import { getSession } from '~/server/trpc/context'
+import type { ContentType, UserType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 
 const InfoEditor = dynamic(
@@ -19,7 +19,7 @@ const InfoEditor = dynamic(
 )
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
-  const session = await getSessionContext(ctx)
+  const session = await getSession(ctx)
 
   if (!session) {
     return {

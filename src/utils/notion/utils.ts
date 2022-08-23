@@ -10,7 +10,7 @@ import type { U } from 'ts-toolbelt'
 import { MentionType, RichTextType } from './types'
 
 export const throttle = pThrottle({
-  limit: 10,
+  limit: 30,
   interval: 1000,
 })
 

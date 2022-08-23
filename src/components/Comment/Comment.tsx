@@ -1,5 +1,7 @@
 import { Form, FormSubmit, Role, useFormState } from 'ariakit'
 import Link from 'next/link'
+import { useState } from 'react'
+import { nil } from 'tsdef'
 import { ContentAndCommentsType, PageType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 import { Button } from '../Button'
@@ -21,34 +23,12 @@ export function Comment({
     }
   }
 }) {
-  const utils = trpc.proxy.useContext()
   const { data } = trpc.proxy.page.getComment.useQuery(
     { breadcrambs },
     { enabled: breadcrambs.length <= 4 },
   )
-  const { mutate } = trpc.proxy.page.postComment.useMutation({
-    onSuccess(nextData) {
-      utils.page.getBlockChildren.setData(
-        (
-          prevData: (ContentAndCommentsType & PageType) | null,
-        ): (ContentAndCommentsType & PageType) | null => {
-          if (!prevData) return null
-          return {
-            ...prevData,
-            comments: [
-              ...(prevData.comments || []),
-              ...(nextData?.comments || []),
-            ],
-          }
-        },
-        { id: comment.id },
-      )
-      utils.page.getComment.invalidate({
-        breadcrambs,
-      })
-    },
-  })
   const [pageId, ...comments] = breadcrambs
+  const [addComment, setAddComment] = useState(false)
 
   return (
     <div className="pl-4">
@@ -80,27 +60,59 @@ export function Comment({
           />
         ))}
       </Role>
-      <div>
-        <CommentForm
-          onSubmit={(text) => {
-            mutate({ breadcrambs, comment: text })
-          }}
-        />
-      </div>
+      {addComment ? (
+        <div>
+          <CommentForm
+            id={comment.id}
+            breadcrambs={breadcrambs}
+            onSummit={() => setAddComment(false)}
+          />
+        </div>
+      ) : (
+        <Button onClick={() => setAddComment(true)}>Add comment</Button>
+      )}
     </div>
   )
 }
 
 export function CommentForm({
-  onSubmit,
+  id,
+  breadcrambs,
+  onSummit,
 }: {
-  onSubmit: (data: string) => void
+  id: string | nil
+  breadcrambs: [string, ...string[]] | nil
+  onSummit?: () => void
 }) {
+  const utils = trpc.proxy.useContext()
+  const { mutate } = trpc.proxy.page.postComment.useMutation({
+    onSuccess(nextData) {
+      utils.page.getBlockChildren.setData(
+        (
+          prevData: ContentAndCommentsType | nil,
+        ): ContentAndCommentsType | nil => {
+          if (!prevData) return null
+          return {
+            ...prevData,
+            comments: [
+              ...(prevData.comments || []),
+              ...(nextData?.comments || []),
+            ],
+          }
+        },
+        { id },
+      )
+      utils.page.getComment.invalidate({
+        breadcrambs,
+      })
+    },
+  })
   const form = useFormState({
     defaultValues: { comment: '' },
   })
   form.useSubmit(() => {
-    onSubmit(form.values.comment)
+    mutate({ breadcrambs, comment: form.values.comment })
+    onSummit?.()
   })
 
   return (

@@ -1,10 +1,8 @@
-import { format, parseISO } from 'date-fns'
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
 import Link from 'next/link'
 import { Comment, CommentForm, RichText, Timestamp } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getBlockChildren, getPage, getRelations } from '~/utils/notion/api'
-import { ContentAndCommentsType, PageType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 
 export async function getStaticPaths() {
@@ -26,31 +24,10 @@ export async function getStaticProps(
 }
 
 function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const utils = trpc.proxy.useContext()
   const { data } = trpc.proxy.page.getBlockChildren.useQuery(
     { id: page.id },
     { initialData: { content: page.content, comments: page.comments } },
   )
-  const { mutate } = trpc.proxy.page.postComment.useMutation({
-    onSuccess(nextData) {
-      utils.page.getBlockChildren.setData(
-        (
-          prevData: (ContentAndCommentsType & PageType) | null,
-        ): (ContentAndCommentsType & PageType) | null => {
-          if (!prevData) return null
-          return {
-            ...prevData,
-            comments: [
-              ...(prevData.comments || []),
-              ...(nextData?.comments || []),
-            ],
-          }
-        },
-        { id: page.id },
-      )
-      utils.page.getBlockChildren.invalidate({ id: page.id })
-    },
-  })
 
   return (
     <>
@@ -93,11 +70,7 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
         ) : null,
       )}
       <div>
-        <CommentForm
-          onSubmit={(comment) => {
-            mutate({ breadcrambs: [page?.id], comment })
-          }}
-        />
+        <CommentForm id={page.id} breadcrambs={page?.id ? [page.id] : null} />
       </div>
     </>
   )

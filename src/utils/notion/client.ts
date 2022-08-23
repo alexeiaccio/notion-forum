@@ -8,7 +8,7 @@ export const notionVersion = '2022-06-28'
 export const notion = new Client({
   auth: env.NOTION_KEY,
   notionVersion,
-  logLevel: LogLevel.DEBUG,
+  logLevel: LogLevel.ERROR,
 })
 
 // export const fetchAPI = (<T>() =>

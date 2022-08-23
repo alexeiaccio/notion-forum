@@ -7,6 +7,7 @@ import { trpc } from '~/utils/trpc'
 
 export async function getStaticProps() {
   const ssg = await getSSG()
+  // @ts-ignore
   ssg.prefetchInfiniteQuery('page.getPagesList')
   return {
     props: {

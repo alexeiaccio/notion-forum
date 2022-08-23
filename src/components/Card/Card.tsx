@@ -3,9 +3,15 @@ import Link from 'next/link'
 
 import { PageType } from '~/utils/notion/types'
 
-export function Card({ item }: { item: PageType | null | undefined }) {
+export function Card({
+  item,
+  pathname = '/page',
+}: {
+  item: PageType | null | undefined
+  pathname?: string
+}) {
   return (
-    <Link href={`/page/${item?.id}`} passHref>
+    <Link href={`${pathname}/${item?.id}`} passHref>
       <a>
         <h3>{item?.title}</h3>
         <div>
