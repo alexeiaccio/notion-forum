@@ -7,10 +7,12 @@ import {
   getDraft,
   getDraftContent,
   getDraftsList,
+  getLikes,
   getRelations,
   getSpace,
   getUser,
   getUserInfo,
+  postLike,
   publishDraft,
   updateUserImage,
   updateUserInfo,
@@ -21,6 +23,7 @@ import {
   ChildrenType,
   contentAndCommentsType,
   contentType,
+  likesType,
   pagesList,
   pageType,
   ParagraphType,
@@ -244,5 +247,26 @@ export const userRouter = t.router({
       }
       const res = await publishDraft(ctx.session.user.id, input.pageId)
       return res
+    }),
+  getLikes: authedProcedure
+    .input(z.object({ id: z.string().nullish() }))
+    .output(likesType.nullish())
+    .query(async ({ input, ctx }) => {
+      if (!input.id || !ctx?.session?.user?.id) return null
+      const likes = await getLikes(ctx.session.user.id, input.id)
+      return likes
+    }),
+  postLike: authedProcedure
+    .input(
+      z.object({
+        id: z.string().nullish(),
+        action: z.union([z.literal('likes'), z.literal('dislikes')]),
+      }),
+    )
+    .output(likesType.nullish())
+    .mutation(async ({ input, ctx }) => {
+      if (!input.id || !ctx?.session?.user?.id) return null
+      const likes = await postLike(ctx.session.user.id, input.id, input.action)
+      return likes
     }),
 })

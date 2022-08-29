@@ -21,6 +21,8 @@ const envSchema = z.object({
   NOTION_ROLE_DB_ID: z.string(),
   NOTION_SPACE_DB_ID: z.string(),
   NOTION_PAGE_DB_ID: z.string(),
+  NOTION_TAG_DB_ID: z.string(),
+  NOTION_LIKE_DB_ID: z.string(),
 
   NOTION_CLIENT_ID: z.string(),
   NOTION_CLIENT_SECRET: z.string(),

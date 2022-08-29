@@ -19,6 +19,7 @@ export async function getStaticProps(
   const id = ctx.params?.user
   const user = await getUserInfo(id)
   const ssg = await getSSG()
+  // @ts-ignore
   ssg.prefetchInfiniteQuery('page.getUserPagesList', { id })
   return {
     props: { user, trpcState: ssg.dehydrate() },

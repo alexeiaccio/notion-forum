@@ -1,9 +1,12 @@
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Comment, CommentForm, RichText, Timestamp } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getBlockChildren, getPage, getRelations } from '~/utils/notion/api'
 import { trpc } from '~/utils/trpc'
+
+const Likes = dynamic(() => import('~/components/Likes/Likes'), { ssr: false })
 
 export async function getStaticPaths() {
   return {
@@ -18,8 +21,9 @@ export async function getStaticProps(
   const id = ctx.params?.page
   const [page, blocks] = await Promise.all([getPage(id), getBlockChildren(id)])
   const authors = await getRelations(page?.authors)
+  const tags = await getRelations(page?.tags)
   return {
-    props: { page: { ...page, authors, ...blocks } },
+    props: { page: { ...page, authors, tags, ...blocks } },
   }
 }
 
@@ -55,6 +59,7 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
           <span key={tage.id}>{tage.name}</span>
         ))}
       </div>
+      <Likes id={page.id} likes={page.likes} dislikes={page.dislikes} />
       <article>
         {page?.content?.map((block) => (
           <RichText key={block.id} content={block} />

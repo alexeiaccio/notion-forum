@@ -87,11 +87,12 @@ export const rawPageType = z.object({
   tags: z
     .array(
       z.object({
-        id: z.string(),
-        name: z.string(),
+        id: z.string().nullish(),
       }),
     )
     .nullish(),
+  likes: z.number().nullish(),
+  dislikes: z.number().nullish(),
   created: z.string().nullish(),
   updated: z.string().nullish(),
   published: z.string().nullish(),
@@ -108,14 +109,9 @@ export const pageType = z.object({
   id: z.string().nullish(),
   title: z.string().nullish(),
   authors: z.array(relationType).nullish(),
-  tags: z
-    .array(
-      z.object({
-        id: z.string(),
-        name: z.string(),
-      }),
-    )
-    .nullish(),
+  tags: z.array(relationType).nullish(),
+  likes: z.number().nullish(),
+  dislikes: z.number().nullish(),
   created: z.string().nullish(),
   updated: z.string().nullish(),
 })
@@ -290,5 +286,18 @@ export const spaceType = z.object({
   accountId: z.string().nullish(),
 })
 export type SpaceType = z.infer<typeof spaceType>
+
+export const likesType = z.object({
+  like: z.boolean(),
+  dislike: z.boolean(),
+})
+export type LikesType = z.infer<typeof likesType>
+
+export const pageLikesType = z.object({
+  likes: z.number(),
+  dislikes: z.number(),
+  rating: z.number().optional(),
+})
+export type PageLikesType = z.infer<typeof pageLikesType>
 
 // #endregion

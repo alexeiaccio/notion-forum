@@ -4,6 +4,7 @@ import {
   getBlock,
   getBlockChildren,
   getPage,
+  getPageLikes,
   getPagesList,
   getRelations,
   postComment,
@@ -13,6 +14,7 @@ import {
   commentType,
   contentAndCommentsType,
   contentType,
+  pageLikesType,
   pagesList,
   pageType,
   relationType,
@@ -50,7 +52,8 @@ export const pageRouter = t.router({
             getBlockChildren(input.id),
           ])
           const authors = await getRelations(page?.authors)
-          return { ...page, authors, ...blocks }
+          const tags = await getRelations(page?.tags)
+          return { ...page, authors, tags, ...blocks }
         },
         `page/${input.id}`,
         'page',
@@ -123,7 +126,8 @@ export const pageRouter = t.router({
           async () => {
             const page = await getPage(pageId)
             const authors = await getRelations(page?.authors)
-            return { ...page, authors, content: null, comments: null }
+            const tags = await getRelations(page?.tags)
+            return { ...page, authors, tags, content: null, comments: null }
           },
           `page/${pageId}`,
           'page',
@@ -187,6 +191,17 @@ export const pageRouter = t.router({
     .output(z.array(relationType.nullish()).nullish())
     .query(async ({ input }) => {
       const res = await getRelations(input.ids)
+      return res
+    }),
+  getPageLikes: t.procedure
+    .input(
+      z.object({
+        id: z.string().nullish(),
+      }),
+    )
+    .output(pageLikesType.nullish())
+    .query(async ({ input }) => {
+      const res = await getPageLikes(input.id)
       return res
     }),
 })

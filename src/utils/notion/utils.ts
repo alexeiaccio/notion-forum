@@ -33,6 +33,22 @@ type File = {
   name: string
 }
 
+export function getPropertyItem<
+  Props extends Record<string, GetPagePropertyResponse>,
+  Prop extends Props[keyof Props],
+  Type extends Prop['type'],
+  Res extends Extract<Prop, { type: Type }>,
+  TypeKey extends Extract<keyof Res, Type>,
+>(
+  props: Props | null | undefined,
+  key: keyof Props,
+  type: Type,
+): Res[TypeKey] | null {
+  return props && key in props
+    ? (props[key] as Res)?.[type as TypeKey] || null
+    : null
+}
+
 export function getProperty<
   Props extends Record<string, GetPagePropertyResponse>,
   Prop extends Props[keyof Props],

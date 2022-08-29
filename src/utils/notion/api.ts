@@ -25,6 +25,8 @@ import {
   ChildrenType,
   ContentAndCommentsType,
   ContentType,
+  LikesType,
+  PageLikesType,
   PagesList,
   ParagraphType,
   RawPageType,
@@ -37,6 +39,7 @@ import {
   getProperties,
   getPropertiesList,
   getProperty,
+  getPropertyItem,
   idFromUUID,
   parseMention,
   parseRichText,
@@ -53,6 +56,7 @@ const SESSION_DB = env.NOTION_SESSION_DB_ID
 const ROLE_DB = env.NOTION_ROLE_DB_ID
 const SPACE_DB = env.NOTION_SPACE_DB_ID
 const PAGE_DB = env.NOTION_PAGE_DB_ID
+const LIKE_DB = env.NOTION_LIKE_DB_ID
 
 // #region Auth
 
@@ -834,47 +838,75 @@ export async function publishDraft(
     notion.pages.create({
       parent: { type: 'database_id', database_id: PAGE_DB },
       properties: {
+        title: {
+          title: [
+            {
+              text: {
+                content:
+                  getProperty(pageProps, 'title', 'title')?.plain_text ||
+                  'No title',
+              },
+            },
+          ],
+        },
+        authors: {
+          relation: [{ id: idFromUUID(userId) }],
+        },
+      },
+      children: [
+        {
+          synced_block: {
+            synced_from: null,
+            children: (
+              blocks.results as BlockObjectResponse[]
+            ).reduce<ChildrenType>((acc, block) => {
+              switch (block.type) {
+                case 'paragraph':
+                  acc.push({
+                    paragraph: {
+                      rich_text: block.paragraph
+                        .rich_text as RichTextRequestSchema[],
+                      color: block.paragraph.color,
+                    },
+                  })
+                  break
+                case 'heading_3':
+                  acc.push({
+                    heading_3: {
+                      rich_text: block.heading_3
+                        .rich_text as RichTextRequestSchema[],
+                      color: block.heading_3.color,
+                    },
+                  })
+                  break
+                default:
+                  break
+              }
+              return acc
+            }, []),
+          },
+        },
+      ],
+    }),
+  )
+  invariant(createdPage, 'Page not created')
+  notion.pages.create({
+    parent: { type: 'database_id', database_id: LIKE_DB },
+    properties: {
+      title: {
         title: [
           {
             text: {
-              content:
-                getProperty(pageProps, 'title', 'title')?.plain_text ||
-                'No title',
+              content: idFromUUID(createdPage.id),
             },
           },
         ],
       },
-      children: (blocks.results as BlockObjectResponse[]).reduce<ChildrenType>(
-        (acc, block) => {
-          switch (block.type) {
-            case 'paragraph':
-              acc.push({
-                paragraph: {
-                  rich_text: block.paragraph
-                    .rich_text as RichTextRequestSchema[],
-                  color: block.paragraph.color,
-                },
-              })
-              break
-            case 'heading_3':
-              acc.push({
-                heading_3: {
-                  rich_text: block.heading_3
-                    .rich_text as RichTextRequestSchema[],
-                  color: block.heading_3.color,
-                },
-              })
-              break
-            default:
-              break
-          }
-          return acc
-        },
-        [],
-      ),
-    }),
-  )
-  invariant(createdPage, 'Page not created')
+      pageId: {
+        relation: [{ id: idFromUUID(createdPage.id) }],
+      },
+    },
+  })
   const updatedPage = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
     notionBot.pages.update({
       page_id: idFromUUID(id),
@@ -887,6 +919,98 @@ export async function publishDraft(
   )
   invariant(updatedPage, 'Draft not updated')
   return createdPage?.id
+}
+
+export async function getLikes(
+  userId: string,
+  id: string,
+): Promise<LikesType | null> {
+  const likes = await throttledAPICall<QueryDatabaseResponse>(() =>
+    notion.databases.query({
+      database_id: LIKE_DB,
+      filter: {
+        and: [
+          {
+            property: 'pageId',
+            relation: { contains: idFromUUID(id) },
+          },
+          {
+            or: [
+              {
+                property: 'likes',
+                relation: { contains: idFromUUID(userId) },
+              },
+              {
+                property: 'dislikes',
+                relation: { contains: idFromUUID(userId) },
+              },
+            ],
+          },
+        ],
+      },
+    }),
+  )
+  const page = likes?.results?.[0] as U.Merge<
+    QueryDatabaseResponse['results'][0]
+  >
+  const likesProps = await getProperties(notion, {
+    page,
+    pick: ['likes', 'dislikes'],
+  })
+  if (!page || !likesProps) return null
+  return {
+    like: getPropertiesList(likesProps, 'likes', 'relation').some(
+      (item) => idFromUUID(item.id) === idFromUUID(userId),
+    ),
+    dislike: getPropertiesList(likesProps, 'dislikes', 'relation').some(
+      (item) => idFromUUID(item.id) === idFromUUID(userId),
+    ),
+  }
+}
+
+export async function postLike(
+  userId: string,
+  id: string,
+  action: 'likes' | 'dislikes',
+): Promise<LikesType | null> {
+  const likes = await throttledAPICall<QueryDatabaseResponse>(() =>
+    notion.databases.query({
+      database_id: LIKE_DB,
+      filter: {
+        and: [
+          {
+            property: 'pageId',
+            relation: { contains: idFromUUID(id) },
+          },
+        ],
+      },
+    }),
+  )
+  invariant(likes?.results?.[0], 'Not likes for this page') // TODO make page item in Like DB
+  const page = likes.results[0] as U.Merge<QueryDatabaseResponse['results'][0]>
+  const likesProps = await getProperties(notion, {
+    page,
+    pick: [action],
+  })
+  if (!page || !likesProps) return null
+  const updatedLikes = await throttledAPICall<UpdatePageResponse>(() =>
+    notion.pages.update({
+      page_id: idFromUUID(page.id),
+      properties: {
+        [action]: {
+          relation: [
+            ...getPropertiesList(likesProps, action, 'relation'),
+            { id: idFromUUID(userId) },
+          ],
+        },
+      },
+    }),
+  )
+  invariant(updatedLikes, 'Cannot post this like/dislike')
+  return {
+    like: action === 'likes',
+    dislike: action === 'dislikes',
+  }
 }
 
 // #endregion
@@ -921,7 +1045,7 @@ export async function getPagesList(
   )
   const results = await Promise.all(
     (pages.results as PageObjectResponse[]).map(async (page) => {
-      const pageProps = await getProperties(notion, { page })
+      const pageProps = await getProperties(notion, { page, skip: ['likeId'] })
       return {
         id: idFromUUID(page.id),
         created: page.created_time,
@@ -946,7 +1070,7 @@ export async function getPage(
     }),
   )
   if (!page) return null
-  const pageProps = await getProperties(notion, { page })
+  const pageProps = await getProperties(notion, { page, skip: ['likeId'] })
   return {
     id: idFromUUID(page.id),
     created: page.created_time,
@@ -977,6 +1101,23 @@ export async function getBlockChildren(
       }),
   )
   if (!id || !blocks) return null
+  if (
+    blocks.results?.[0]?.object === 'block' &&
+    'type' in blocks.results[0] &&
+    blocks.results[0].type === 'synced_block'
+  ) {
+    const syncedBlocks = await throttledAPICall<
+      U.Merge<ListBlockChildrenResponse>
+    >(() =>
+      notion.blocks.children.list({
+        block_id: idFromUUID(blocks.results[0]?.id),
+      }),
+    )
+    return {
+      ...parseBlocks(blocks.results as BlockObjectResponse[]),
+      ...parseBlocks(syncedBlocks.results as BlockObjectResponse[]),
+    }
+  }
   return parseBlocks(blocks.results as BlockObjectResponse[])
 }
 
@@ -1023,6 +1164,23 @@ export async function postComment(
   return parseBlocks(comment.results as BlockObjectResponse[])
 }
 
+export async function getPageLikes(id: string | nil): Promise<PageLikesType> {
+  const page = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
+    notion.pages.retrieve({
+      page_id: idFromUUID(id),
+    }),
+  )
+  const pageProps = await getProperties(notion, {
+    page,
+    pick: ['likes', 'dislikes'],
+  })
+  const parsedPage = parsePage(pageProps)
+  return {
+    likes: parsedPage?.likes ?? 0,
+    dislikes: parsedPage?.dislikes ?? 0,
+  }
+}
+
 // #endregion
 
 // #region Parsers
@@ -1031,10 +1189,25 @@ export function parsePage(
   page: Record<string, GetPagePropertyResponse> | null,
 ): RawPageType | null {
   if (!page) return null
+  let likes = 0
+  let dislikes = 0
+  const likesProp = getPropertyItem(page, 'likes', 'property_item')
+  const dislikesProp = getPropertyItem(page, 'dislikes', 'property_item')
+  if (likesProp?.type === 'rollup' && likesProp.rollup.type === 'number') {
+    likes = likesProp.rollup.number ?? 0
+  }
+  if (
+    dislikesProp?.type === 'rollup' &&
+    dislikesProp.rollup.type === 'number'
+  ) {
+    dislikes = dislikesProp.rollup.number ?? 0
+  }
   return {
     title: richTextToPlainText(getProperty(page, 'title', 'title')),
     authors: getPropertiesList(page, 'authors', 'relation'),
-    tags: getProperty(page, 'tags', 'multi_select'),
+    tags: getPropertiesList(page, 'tags', 'relation'),
+    likes,
+    dislikes,
     published: idFromUUID(
       richTextToPlainText(getProperty(page, 'published', 'rich_text')),
     ),

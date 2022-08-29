@@ -2,6 +2,7 @@ import { format, parseISO } from 'date-fns'
 import Link from 'next/link'
 
 import { PageType } from '~/utils/notion/types'
+import { DislikeIcon, LikeIcon } from '../Likes'
 
 export function Card({
   item,
@@ -24,22 +25,32 @@ export function Card({
             <div key={tage.id}>{tage.name}</div>
           ))}
         </div>
-        {item?.created ? (
-          <time
-            className="text-sm"
-            dateTime={format(parseISO(item.created), "yyyy-MM-dd'T'HH:mm")}
-          >
-            {format(parseISO(item.created), 'dd MMMM yyyy, HH:mm')}
-          </time>
-        ) : null}
-        {item?.updated ? (
-          <time
-            className="text-sm"
-            dateTime={format(parseISO(item.updated), "yyyy-MM-dd'T'HH:mm")}
-          >
-            {format(parseISO(item.updated), 'dd MMMM yyyy, HH:mm')}
-          </time>
-        ) : null}
+        <div className="flex items-center gap-2 text-xs leading-normal">
+          {item?.created ? (
+            <time
+              dateTime={format(parseISO(item.created), "yyyy-MM-dd'T'HH:mm")}
+            >
+              {format(parseISO(item.created), 'dd MMMM yyyy, HH:mm')}
+            </time>
+          ) : null}
+          {item?.updated ? (
+            <time
+              dateTime={format(parseISO(item.updated), "yyyy-MM-dd'T'HH:mm")}
+            >
+              {format(parseISO(item.updated), 'dd MMMM yyyy, HH:mm')}
+            </time>
+          ) : null}
+          {item?.likes ? (
+            <span className="inline-flex items-center gap-1">
+              <LikeIcon /> {item.likes}
+            </span>
+          ) : null}
+          {item?.dislikes ? (
+            <span className="inline-flex items-center gap-1">
+              <DislikeIcon /> {item.dislikes}
+            </span>
+          ) : null}
+        </div>
       </a>
     </Link>
   )
