@@ -28,6 +28,7 @@ export function Comment({
     { enabled: breadcrambs.length <= 4 },
   )
   const [pageId, ...comments] = breadcrambs
+  const [showComments, setShowComments] = useState(false)
   const [addComment, setAddComment] = useState(false)
 
   return (
@@ -52,13 +53,22 @@ export function Comment({
         {data?.content?.map((block) => (
           <RichText key={block.id} content={block} />
         ))}
-        {data?.comments?.map((comment) => (
-          <Comment
-            key={comment.id}
-            breadcrambs={[...breadcrambs, comment.id]}
-            comment={comment}
-          />
-        ))}
+        {showComments ? (
+          <>
+            {data?.comments?.map((comment) => (
+              <Comment
+                key={comment.id}
+                breadcrambs={[...breadcrambs, comment.id]}
+                comment={comment}
+              />
+            ))}
+            <Button onClick={() => setShowComments(false)}>
+              Collapse comments
+            </Button>
+          </>
+        ) : data?.comments?.length ? (
+          <Button onClick={() => setShowComments(true)}>Show comments</Button>
+        ) : null}
       </Role>
       {addComment ? (
         <div>

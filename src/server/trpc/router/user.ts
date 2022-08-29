@@ -8,6 +8,7 @@ import {
   getDraftContent,
   getDraftsList,
   getLikes,
+  getPublished,
   getRelations,
   getSpace,
   getUser,
@@ -27,6 +28,7 @@ import {
   pagesList,
   pageType,
   ParagraphType,
+  publishedType,
   rawPageType,
   spaceType,
   userType,
@@ -247,6 +249,14 @@ export const userRouter = t.router({
       }
       const res = await publishDraft(ctx.session.user.id, input.pageId)
       return res
+    }),
+  getPublished: authedProcedure
+    .input(z.object({ id: z.string().nullish() }))
+    .output(publishedType.nullish())
+    .query(async ({ input, ctx }) => {
+      if (!input.id || !ctx?.session?.user?.id) return null
+      const published = await getPublished(input.id)
+      return published
     }),
   getLikes: authedProcedure
     .input(z.object({ id: z.string().nullish() }))

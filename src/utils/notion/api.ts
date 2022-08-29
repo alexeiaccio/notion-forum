@@ -29,6 +29,7 @@ import {
   PageLikesType,
   PagesList,
   ParagraphType,
+  PublishedType,
   RawPageType,
   RelationType,
   RichTextRequestSchema,
@@ -921,6 +922,23 @@ export async function publishDraft(
   return createdPage?.id
 }
 
+export async function getPublished(id: string): Promise<PublishedType | nil> {
+  const page = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
+    notion.pages.retrieve({
+      page_id: idFromUUID(id),
+    }),
+  )
+  const pageProps = await getProperties(notion, {
+    page,
+    pick: ['published'],
+  })
+  return {
+    published: idFromUUID(
+      richTextToPlainText(getProperty(pageProps, 'published', 'rich_text')),
+    ),
+  }
+}
+
 export async function getLikes(
   userId: string,
   id: string,
@@ -977,7 +995,7 @@ export async function postLike(
     notion.databases.query({
       database_id: LIKE_DB,
       filter: {
-        and: [
+        or: [
           {
             property: 'pageId',
             relation: { contains: idFromUUID(id) },
@@ -1045,7 +1063,10 @@ export async function getPagesList(
   )
   const results = await Promise.all(
     (pages.results as PageObjectResponse[]).map(async (page) => {
-      const pageProps = await getProperties(notion, { page, skip: ['likeId'] })
+      const pageProps = await getProperties(notion, {
+        page,
+        skip: ['likeId', 'published'],
+      })
       return {
         id: idFromUUID(page.id),
         created: page.created_time,
@@ -1070,7 +1091,10 @@ export async function getPage(
     }),
   )
   if (!page) return null
-  const pageProps = await getProperties(notion, { page, skip: ['likeId'] })
+  const pageProps = await getProperties(notion, {
+    page,
+    skip: ['likeId', 'published'],
+  })
   return {
     id: idFromUUID(page.id),
     created: page.created_time,

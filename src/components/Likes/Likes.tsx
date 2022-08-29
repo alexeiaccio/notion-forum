@@ -25,7 +25,7 @@ export default function Likes({
   )
   const { data, isLoading, isFetched } = trpc.proxy.user.getLikes.useQuery(
     { id },
-    { enabled: Boolean(id) },
+    { enabled: Boolean(id), requestContext: { skipBatch: true } },
   )
   const { mutate, isLoading: isMutating } =
     trpc.proxy.user.postLike.useMutation({
@@ -44,7 +44,7 @@ export default function Likes({
     })
 
   return (
-    <div className="flex items-center gap-2 text-xs">
+    <div className="flex items-center gap-2 text-xs leading-normal">
       <LikeIcon fill={data?.like} />
       <span className={twMerge(data?.like && 'font-semibold')}>
         {page?.likes ?? 0}

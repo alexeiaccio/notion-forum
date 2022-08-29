@@ -1,6 +1,7 @@
 import type { GetStaticPropsContext, InferGetStaticPropsType } from 'next'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
+import { Nilable } from 'tsdef'
 import { Comment, CommentForm, RichText, Timestamp } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getBlockChildren, getPage, getRelations } from '~/utils/notion/api'
@@ -60,6 +61,7 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
         ))}
       </div>
       <Likes id={page.id} likes={page.likes} dislikes={page.dislikes} />
+      <Published id={page.id} />
       <article>
         {page?.content?.map((block) => (
           <RichText key={block.id} content={block} />
@@ -84,3 +86,19 @@ function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
 Page.getLayout = getLayout
 
 export default Page
+
+function Published({ id }: { id: Nilable<string> }) {
+  const { data } = trpc.proxy.user.getPublished.useQuery(
+    { id },
+    { enabled: Boolean(id), requestContext: { skipBatch: true } },
+  )
+
+  if (!data?.published) return null
+  return (
+    <div>
+      <Link href={`/account/draft/${data.published}`} passHref>
+        <a>Open draft</a>
+      </Link>
+    </div>
+  )
+}

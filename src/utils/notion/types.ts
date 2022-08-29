@@ -287,6 +287,11 @@ export const spaceType = z.object({
 })
 export type SpaceType = z.infer<typeof spaceType>
 
+export const publishedType = z.object({
+  published: z.string().nullish(),
+})
+export type PublishedType = z.infer<typeof publishedType>
+
 export const likesType = z.object({
   like: z.boolean(),
   dislike: z.boolean(),
