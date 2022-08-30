@@ -5,6 +5,7 @@ import { nil } from 'tsdef'
 import { ContentAndCommentsType, PageType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 import { Button } from '../Button'
+import { CommentLikes } from '../Likes'
 import { RichText } from '../RichText'
 import { CommentEditor } from '../RichTextEditor'
 import { Timestamp } from '../Timestamp'
@@ -20,6 +21,7 @@ export function Comment({
       author?: string
       relation?: string
       date?: string
+      likes?: string
     }
   }
 }) {
@@ -45,6 +47,9 @@ export function Comment({
         {comment.header?.date ? (
           <Timestamp className="text-sm">{comment.header.date}</Timestamp>
         ) : null}
+        {comment.header?.likes ? (
+          <CommentLikes id={comment.header.likes} commentId={comment.id} />
+        ) : null}
         <Link href={`/page/${pageId}/comments/${comments.join('/')}`} passHref>
           <a className="text-xs">Open</a>
         </Link>
@@ -53,34 +58,44 @@ export function Comment({
         {data?.content?.map((block) => (
           <RichText key={block.id} content={block} />
         ))}
-        {showComments ? (
+        {breadcrambs.length <= 4 ? (
           <>
-            {data?.comments?.map((comment) => (
-              <Comment
-                key={comment.id}
-                breadcrambs={[...breadcrambs, comment.id]}
-                comment={comment}
-              />
-            ))}
-            <Button onClick={() => setShowComments(false)}>
-              Collapse comments
-            </Button>
+            {showComments ? (
+              <>
+                {data?.comments?.map((comment) => (
+                  <Comment
+                    key={comment.id}
+                    breadcrambs={[...breadcrambs, comment.id]}
+                    comment={comment}
+                  />
+                ))}
+                <Button onClick={() => setShowComments(false)}>
+                  Collapse comments
+                </Button>
+              </>
+            ) : data?.comments?.length ? (
+              <Button onClick={() => setShowComments(true)}>
+                Show comments
+              </Button>
+            ) : null}
           </>
-        ) : data?.comments?.length ? (
-          <Button onClick={() => setShowComments(true)}>Show comments</Button>
         ) : null}
       </Role>
-      {addComment ? (
-        <div>
-          <CommentForm
-            id={comment.id}
-            breadcrambs={breadcrambs}
-            onSummit={() => setAddComment(false)}
-          />
-        </div>
-      ) : (
-        <Button onClick={() => setAddComment(true)}>Add comment</Button>
-      )}
+      {breadcrambs.length <= 4 ? (
+        <>
+          {addComment ? (
+            <div>
+              <CommentForm
+                id={comment.id}
+                breadcrambs={breadcrambs}
+                onSummit={() => setAddComment(false)}
+              />
+            </div>
+          ) : (
+            <Button onClick={() => setAddComment(true)}>Add comment</Button>
+          )}
+        </>
+      ) : null}
     </div>
   )
 }
@@ -95,7 +110,7 @@ export function CommentForm({
   onSummit?: () => void
 }) {
   const utils = trpc.proxy.useContext()
-  const { mutate } = trpc.proxy.page.postComment.useMutation({
+  const { mutate } = trpc.proxy.user.postComment.useMutation({
     onSuccess(nextData) {
       utils.page.getBlockChildren.setData(
         (

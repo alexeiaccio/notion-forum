@@ -152,18 +152,23 @@ export function parseRichText(
 export function parseMention(
   richText: RichTextItemResponse[] | null | undefined,
 ) {
-  const result = {} as { relation: string; author: string; date: string }
-  richText?.forEach((text) => {
-    if (text.type === 'mention') {
-      if (text.mention.type === 'page') {
-        result.author = text.plain_text
-        result.relation = idFromUUID(text.mention.page.id)
-      }
-      if (text.mention.type === 'date') {
-        result.date = text.mention.date.start
-      }
-    }
-  })
+  const result = {} as {
+    relation?: string
+    author?: string
+    date?: string
+    likes?: string
+  }
+  const [author, data, likes] = richText || []
+  if (author?.type === 'mention' && author.mention.type === 'page') {
+    result.author = author.plain_text
+    result.relation = idFromUUID(author.mention.page.id)
+  }
+  if (data?.type === 'mention' && data.mention.type === 'date') {
+    result.date = data.mention.date.start
+  }
+  if (likes?.type === 'mention' && likes.mention.type === 'page') {
+    result.likes = idFromUUID(likes.mention.page.id)
+  }
   return result
 }
 

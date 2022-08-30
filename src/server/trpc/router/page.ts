@@ -1,25 +1,23 @@
 import { z } from 'zod'
-import { getCached, revalidateCached } from '~/utils/getWithCache'
+import { getCached } from '~/utils/getWithCache'
 import {
   getBlock,
   getBlockChildren,
+  getCommentLikes,
   getPage,
   getPageLikes,
   getPagesList,
   getRelations,
-  postComment,
 } from '~/utils/notion/api'
 import {
-  ChildrenType,
   commentType,
   contentAndCommentsType,
-  contentType,
   pageLikesType,
   pagesList,
   pageType,
   relationType,
 } from '~/utils/notion/types'
-import { authedProcedure, t } from '../utils'
+import { t } from '../utils'
 
 export const pageRouter = t.router({
   getPagesList: t.procedure
@@ -149,39 +147,6 @@ export const pageRouter = t.router({
       const { content: _, comments: __, ...page } = pageProps
       return { page, comments }
     }),
-  postComment: authedProcedure
-    .input(
-      z
-        .object({
-          breadcrambs: z.array(z.string().nullish()).nullish(),
-          comment: z.string().nullish(),
-        })
-        .nullish(),
-    )
-    .output(contentAndCommentsType.nullish())
-    .mutation(async ({ input, ctx }) => {
-      if (!input?.breadcrambs || !ctx.session?.user.id || !input?.comment) {
-        return null
-      }
-      const {
-        0: pageId,
-        length: breadcrambsLength,
-        [breadcrambsLength - 1]: blockId,
-      } = input.breadcrambs
-      const [, ...breadcrambs] = input.breadcrambs
-      const res = await postComment(
-        blockId,
-        ctx.session.user.id,
-        JSON.parse(input.comment) as ChildrenType,
-      )
-      if (res?.comments?.[0]?.id) {
-        await revalidateCached(
-          ctx.res,
-          `page/${pageId}/comments/${breadcrambs.join('/')}`,
-        )
-      }
-      return res
-    }),
   getRelations: t.procedure
     .input(
       z.object({
@@ -202,6 +167,17 @@ export const pageRouter = t.router({
     .output(pageLikesType.nullish())
     .query(async ({ input }) => {
       const res = await getPageLikes(input.id)
+      return res
+    }),
+  getCommentLikes: t.procedure
+    .input(
+      z.object({
+        id: z.string().nullish(),
+      }),
+    )
+    .output(pageLikesType.nullish())
+    .query(async ({ input }) => {
+      const res = await getCommentLikes(input.id)
       return res
     }),
 })

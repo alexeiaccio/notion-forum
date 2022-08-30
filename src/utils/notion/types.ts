@@ -128,9 +128,9 @@ export const commentType = z.object({
   id: z.string().nullish(),
   header: z
     .object({
-      author: z.string(),
-      relation: z.string(),
-      date: z.string(),
+      author: z.string().nullish(),
+      relation: z.string().nullish(),
+      date: z.string().nullish(),
     })
     .nullish(),
 })
@@ -179,9 +179,10 @@ export type ContentType = z.infer<typeof contentType>
 const commentHeaderType = z.object({
   id: z.string(),
   header: z.object({
-    author: z.string(),
-    relation: z.string(),
-    date: z.string(),
+    author: z.string().optional(),
+    relation: z.string().optional(),
+    date: z.string().optional(),
+    likes: z.string().optional(),
   }),
 })
 export type CommentHeaderType = z.infer<typeof commentHeaderType>

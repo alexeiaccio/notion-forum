@@ -7,12 +7,13 @@ import {
   getDraft,
   getDraftContent,
   getDraftsList,
-  getLikes,
   getPublished,
   getRelations,
   getSpace,
   getUser,
   getUserInfo,
+  getUserLikes,
+  postComment,
   postLike,
   publishDraft,
   updateUserImage,
@@ -258,12 +259,12 @@ export const userRouter = t.router({
       const published = await getPublished(input.id)
       return published
     }),
-  getLikes: authedProcedure
+  getUserLikes: authedProcedure
     .input(z.object({ id: z.string().nullish() }))
     .output(likesType.nullish())
     .query(async ({ input, ctx }) => {
       if (!input.id || !ctx?.session?.user?.id) return null
-      const likes = await getLikes(ctx.session.user.id, input.id)
+      const likes = await getUserLikes(ctx.session.user.id, input.id)
       return likes
     }),
   postLike: authedProcedure
@@ -278,5 +279,38 @@ export const userRouter = t.router({
       if (!input.id || !ctx?.session?.user?.id) return null
       const likes = await postLike(ctx.session.user.id, input.id, input.action)
       return likes
+    }),
+  postComment: authedProcedure
+    .input(
+      z
+        .object({
+          breadcrambs: z.array(z.string().nullish()).nullish(),
+          comment: z.string().nullish(),
+        })
+        .nullish(),
+    )
+    .output(contentAndCommentsType.nullish())
+    .mutation(async ({ input, ctx }) => {
+      if (!input?.breadcrambs || !ctx.session?.user.id || !input?.comment) {
+        return null
+      }
+      const {
+        0: pageId,
+        length: breadcrambsLength,
+        [breadcrambsLength - 1]: blockId,
+      } = input.breadcrambs
+      const [, ...breadcrambs] = input.breadcrambs
+      const res = await postComment(
+        blockId,
+        ctx.session.user.id,
+        JSON.parse(input.comment) as ChildrenType,
+      )
+      if (res?.comments?.[0]?.id) {
+        await revalidateCached(
+          ctx.res,
+          `page/${pageId}/comments/${breadcrambs.join('/')}`,
+        )
+      }
+      return res
     }),
 })

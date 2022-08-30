@@ -23,15 +23,15 @@ export default function Likes({
       enabled: Boolean(id),
     },
   )
-  const { data, isLoading, isFetched } = trpc.proxy.user.getLikes.useQuery(
+  const { data, isLoading, isFetched } = trpc.proxy.user.getUserLikes.useQuery(
     { id },
     { enabled: Boolean(id), requestContext: { skipBatch: true } },
   )
   const { mutate, isLoading: isMutating } =
     trpc.proxy.user.postLike.useMutation({
       onSuccess(nextValue) {
-        utils.user.getLikes.setData(() => nextValue, { id })
-        utils.user.getLikes.invalidate({ id })
+        utils.user.getUserLikes.setData(() => nextValue, { id })
+        utils.user.getUserLikes.invalidate({ id })
         utils.page.getPageLikes.setData(
           (prevData) => ({
             likes: (prevData?.likes ?? 0) + (nextValue?.like ? 1 : 0),
@@ -63,6 +63,70 @@ export default function Likes({
           </Button>
           <Button
             onClick={() => mutate({ id, action: 'dislikes' })}
+            disabled={isLoading || isMutating}
+          >
+            <DislikeIcon />
+          </Button>
+        </>
+      ) : null}
+    </div>
+  )
+}
+
+export function CommentLikes({
+  id,
+  commentId,
+}: {
+  id: Nilable<string>
+  commentId: Nilable<string>
+}) {
+  const utils = trpc.proxy.useContext()
+  const { data: page } = trpc.proxy.page.getCommentLikes.useQuery(
+    { id },
+    {
+      enabled: Boolean(id),
+    },
+  )
+  const { data, isLoading, isFetched } = trpc.proxy.user.getUserLikes.useQuery(
+    { id: commentId },
+    { enabled: Boolean(commentId), requestContext: { skipBatch: true } },
+  )
+  const { mutate, isLoading: isMutating } =
+    trpc.proxy.user.postLike.useMutation({
+      onSuccess(nextValue) {
+        utils.user.getUserLikes.setData(() => nextValue, { id: commentId })
+        utils.user.getUserLikes.invalidate({ id: commentId })
+        utils.page.getCommentLikes.setData(
+          (prevData) => ({
+            likes: (prevData?.likes ?? 0) + (nextValue?.like ? 1 : 0),
+            dislikes: (prevData?.dislikes ?? 0) + (nextValue?.dislike ? 1 : 0),
+          }),
+          { id },
+        )
+        utils.page.getCommentLikes.invalidate({ id })
+      },
+    })
+
+  return (
+    <div className="flex items-center gap-2 text-xs leading-normal">
+      <LikeIcon fill={data?.like} />
+      <span className={twMerge(data?.like && 'font-semibold')}>
+        {page?.likes ?? 0}
+      </span>
+      <DislikeIcon fill={data?.dislike} />
+      <span className={twMerge(data?.dislike && 'font-semibold')}>
+        {page?.dislikes ?? 0}
+      </span>
+      {isFetched && !data ? (
+        <>
+          <Button
+            onClick={() => mutate({ id: commentId, action: 'likes' })}
+            disabled={isLoading || isMutating}
+          >
+            <LikeIcon />
+          </Button>
+          <Button
+            onClick={() => mutate({ id: commentId, action: 'dislikes' })}
             disabled={isLoading || isMutating}
           >
             <DislikeIcon />

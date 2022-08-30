@@ -903,9 +903,6 @@ export async function publishDraft(
           },
         ],
       },
-      pageId: {
-        relation: [{ id: idFromUUID(createdPage.id) }],
-      },
     },
   })
   const updatedPage = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
@@ -939,7 +936,7 @@ export async function getPublished(id: string): Promise<PublishedType | nil> {
   }
 }
 
-export async function getLikes(
+export async function getUserLikes(
   userId: string,
   id: string,
 ): Promise<LikesType | null> {
@@ -950,7 +947,7 @@ export async function getLikes(
         and: [
           {
             property: 'pageId',
-            relation: { contains: idFromUUID(id) },
+            title: { contains: idFromUUID(id) },
           },
           {
             or: [
@@ -998,13 +995,13 @@ export async function postLike(
         or: [
           {
             property: 'pageId',
-            relation: { contains: idFromUUID(id) },
+            title: { contains: idFromUUID(id) },
           },
         ],
       },
     }),
   )
-  invariant(likes?.results?.[0], 'Not likes for this page') // TODO make page item in Like DB
+  invariant(likes?.results?.[0], 'There is no likes for this page')
   const page = likes.results[0] as U.Merge<QueryDatabaseResponse['results'][0]>
   const likesProps = await getProperties(notion, {
     page,
@@ -1029,6 +1026,87 @@ export async function postLike(
     like: action === 'likes',
     dislike: action === 'dislikes',
   }
+}
+
+export async function postComment(
+  blockId: string | nil,
+  authorId: string,
+  children: ChildrenType,
+): Promise<ContentAndCommentsType | null> {
+  const comment = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
+    () =>
+      notion.blocks.children.append({
+        block_id: idFromUUID(blockId),
+        children: [
+          {
+            type: 'toggle',
+            toggle: {
+              rich_text: [],
+            },
+          },
+        ],
+      }),
+  )
+  if (!comment.results?.[0]) return null
+  const likes = await throttledAPICall<U.Merge<CreatePageResponse>>(() =>
+    notion.pages.create({
+      parent: { type: 'database_id', database_id: LIKE_DB },
+      properties: {
+        title: {
+          title: [
+            {
+              text: {
+                content: idFromUUID(comment.results[0]?.id),
+              },
+            },
+          ],
+        },
+      },
+    }),
+  )
+  await throttledAPICall<U.Merge<UpdateBlockResponse>>(() =>
+    notion.blocks.update({
+      block_id: idFromUUID(comment.results[0]?.id),
+      toggle: {
+        rich_text: [
+          {
+            type: 'mention',
+            mention: {
+              page: {
+                id: idFromUUID(authorId),
+              },
+            },
+          },
+          {
+            type: 'mention',
+            mention: {
+              date: {
+                start: new Date().toISOString(),
+                end: null,
+                time_zone: null,
+              },
+            },
+          },
+          {
+            type: 'mention',
+            mention: {
+              page: {
+                id: idFromUUID(likes?.id),
+              },
+            },
+          },
+        ],
+      },
+    }),
+  )
+  const updatedComment = await throttledAPICall<U.Merge<UpdateBlockResponse>>(
+    () =>
+      notion.blocks.children.append({
+        block_id: idFromUUID(comment.results[0]?.id),
+        children,
+      }),
+  )
+  return parseBlocks([updatedComment] as BlockObjectResponse[])
 }
 
 // #endregion
@@ -1145,49 +1223,6 @@ export async function getBlockChildren(
   return parseBlocks(blocks.results as BlockObjectResponse[])
 }
 
-export async function postComment(
-  blockId: string | nil,
-  authorId: string,
-  children: ChildrenType,
-): Promise<ContentAndCommentsType | null> {
-  const comment = await throttledAPICall<U.Merge<ListBlockChildrenResponse>>(
-    () =>
-      notion.blocks.children.append({
-        block_id: idFromUUID(blockId),
-        children: [
-          {
-            type: 'toggle',
-            toggle: {
-              rich_text: [
-                {
-                  type: 'mention',
-                  mention: {
-                    page: {
-                      id: authorId,
-                    },
-                  },
-                },
-                {
-                  type: 'mention',
-                  mention: {
-                    date: {
-                      start: new Date().toISOString(),
-                      end: null,
-                      time_zone: null,
-                    },
-                  },
-                },
-              ],
-              children,
-            },
-          },
-        ],
-      }),
-  )
-  if (!comment) return null
-  return parseBlocks(comment.results as BlockObjectResponse[])
-}
-
 export async function getPageLikes(id: string | nil): Promise<PageLikesType> {
   const page = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
     notion.pages.retrieve({
@@ -1202,6 +1237,42 @@ export async function getPageLikes(id: string | nil): Promise<PageLikesType> {
   return {
     likes: parsedPage?.likes ?? 0,
     dislikes: parsedPage?.dislikes ?? 0,
+  }
+}
+export async function getCommentLikes(
+  id: string | nil,
+): Promise<PageLikesType | null> {
+  const page = await throttledAPICall<U.Merge<GetPageResponse>>(() =>
+    notion.pages.retrieve({
+      page_id: idFromUUID(id),
+    }),
+  )
+  const pageProps = await getProperties(notion, {
+    page,
+    pick: ['likesCount', 'dislikesCount'],
+  })
+  let likes = 0
+  let dislikes = 0
+  const likesProp = getPropertyItem(pageProps, 'likesCount', 'property_item')
+  const dislikesProp = getPropertyItem(
+    pageProps,
+    'dislikesCount',
+    'property_item',
+  )
+  if (likesProp?.type === 'rollup' && likesProp.rollup.type === 'number') {
+    likes = likesProp.rollup.number ?? 0
+  }
+  if (
+    dislikesProp?.type === 'rollup' &&
+    dislikesProp.rollup.type === 'number'
+  ) {
+    dislikes = dislikesProp.rollup.number ?? 0
+  }
+  if (!page || !pageProps) return null
+  return {
+    likes,
+    dislikes,
+    rating: likes - dislikes,
   }
 }
 
@@ -1307,6 +1378,23 @@ export function parseBlocks(
   return { content, comments }
 }
 
+export function parseSpace(
+  page: Record<string, GetPagePropertyResponse> | null,
+): SpaceType | null {
+  if (!page) return null
+  return {
+    spaceId: richTextToPlainText(getProperty(page, 'spaceId', 'title')),
+    pageId: richTextToPlainText(getProperty(page, 'pageId', 'rich_text')),
+    tableId: richTextToPlainText(getProperty(page, 'tableId', 'rich_text')),
+    userId: getProperty(page, 'userId', 'relation')?.id,
+    accountId: getProperty(page, 'accountId', 'relation')?.id,
+  }
+}
+
+// #endregion
+
+// #region Relations
+
 export async function getRelations(
   ids: { id?: string | nil }[] | nil = [],
 ): Promise<RelationType[] | null> {
@@ -1333,19 +1421,6 @@ export async function getRelations(
     id: idFromUUID(relations[idx]?.id) || null,
     name: richTextToPlainText(getProperty({ name: relation }, 'name', 'title')),
   }))
-}
-
-export function parseSpace(
-  page: Record<string, GetPagePropertyResponse> | null,
-): SpaceType | null {
-  if (!page) return null
-  return {
-    spaceId: richTextToPlainText(getProperty(page, 'spaceId', 'title')),
-    pageId: richTextToPlainText(getProperty(page, 'pageId', 'rich_text')),
-    tableId: richTextToPlainText(getProperty(page, 'tableId', 'rich_text')),
-    userId: getProperty(page, 'userId', 'relation')?.id,
-    accountId: getProperty(page, 'accountId', 'relation')?.id,
-  }
 }
 
 // #endregion
