@@ -9,7 +9,6 @@ import { ListPlugin } from '@lexical/react/LexicalListPlugin'
 import { MarkdownShortcutPlugin } from '@lexical/react/LexicalMarkdownShortcutPlugin'
 import { PlainTextPlugin } from '@lexical/react/LexicalPlainTextPlugin'
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin'
-import { SerializedEditorState } from 'lexical'
 import * as React from 'react'
 
 import CodeHighlightPlugin from './plugins/CodeHighlightPlugin'

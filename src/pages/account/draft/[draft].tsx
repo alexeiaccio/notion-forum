@@ -27,7 +27,8 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
     getDraftContent(session.user.id, id as string),
   ])
   const authors = await getRelations(page?.authors)
-  return { props: { page: { ...page, authors, content } } }
+  const tags = await getRelations(page?.tags)
+  return { props: { page: { ...page, authors, tags, content } } }
 }
 
 function Page({
@@ -80,8 +81,8 @@ Page.getLayout = getLayout
 export default Page
 
 function PublishDraft({ pageId }: { pageId: string | nil }) {
-  const utils = trpc.proxy.useContext()
-  const { mutate, data } = trpc.proxy.user.publishDraft.useMutation({
+  const utils = trpc.useContext()
+  const { mutate, data } = trpc.user.publishDraft.useMutation({
     onSuccess: () => {
       utils.page.getPagesList.invalidate()
     },

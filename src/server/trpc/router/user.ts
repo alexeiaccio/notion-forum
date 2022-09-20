@@ -195,7 +195,7 @@ export const userRouter = t.router({
       return res
     }),
   getDraftsList: authedProcedure
-    .input(z.object({ cursor: z.string().nullish() }).nullish())
+    .input(z.object({ cursor: z.string().nullish() }))
     .output(pagesList.nullish())
     .query(async ({ input, ctx }) => {
       if (!ctx.session.user?.id) return null
@@ -305,12 +305,10 @@ export const userRouter = t.router({
         ctx.session.user.id,
         JSON.parse(input.comment) as ChildrenType,
       )
-      if (res?.comments?.[0]?.id) {
-        await revalidateCached(
-          ctx.res,
-          `page/${pageId}/comments/${breadcrambs.join('/')}`,
-        )
-      }
+      await revalidateCached(
+        ctx.res,
+        `page/${pageId}/comments/${breadcrambs.join('/')}`,
+      )
       return res
     }),
 })

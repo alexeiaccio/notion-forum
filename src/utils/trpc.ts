@@ -1,7 +1,8 @@
 import { httpBatchLink, httpLink, loggerLink, splitLink } from '@trpc/client'
-import { setupTRPC } from '@trpc/next'
+import { createTRPCNext } from '@trpc/next'
 import type { inferProcedureInput, inferProcedureOutput } from '@trpc/server'
 import superjson from 'superjson'
+// import { devtoolsLink } from 'trpc-client-devtools-link'
 import type { AppRouter } from '../server/trpc/router'
 
 export const getBaseUrl = () => {
@@ -15,7 +16,7 @@ export const getBaseUrl = () => {
  * A set of strongly-typed React hooks from your `AppRouter` type signature with `createReactQueryHooks`.
  * @link https://trpc.io/docs/react#3-create-trpc-hooks
  */
-export const trpc = setupTRPC<AppRouter>({
+export const trpc = createTRPCNext<AppRouter>({
   config() {
     return {
       url: `${getBaseUrl()}/api/trpc`,
@@ -27,12 +28,6 @@ export const trpc = setupTRPC<AppRouter>({
        * @link https://trpc.io/docs/links
        */
       links: [
-        // adds pretty logs to your console in development and logs errors in production
-        loggerLink({
-          enabled: (opts) =>
-            process.env.NODE_ENV === 'development' ||
-            (opts.direction === 'down' && opts.result instanceof Error),
-        }),
         splitLink({
           condition(op) {
             // check for context property `skipBatch`
@@ -47,6 +42,19 @@ export const trpc = setupTRPC<AppRouter>({
             url: '/api/trpc',
           }),
         }),
+        // adds pretty logs to your console in development and logs errors in production
+        loggerLink({
+          enabled: (opts) =>
+            process.env.NODE_ENV === 'development' ||
+            (opts.direction === 'down' && opts.result instanceof Error),
+        }),
+        // seems don't work with v10
+        // @link https://github.com/rhenriquez28/trpc-client-devtools
+        // devtoolsLink({
+        //   // `enabled` is true by default
+        //   // If you want to use the devtools extension just for development, do the following
+        //   enabled: process.env.NODE_ENV === 'development',
+        // }),
       ],
       /**
        * @link https://react-query.tanstack.com/reference/QueryClient

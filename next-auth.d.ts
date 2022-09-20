@@ -1,5 +1,4 @@
 import { DefaultSession } from 'next-auth'
-import { ZodString } from 'zod'
 
 declare module 'next-auth' {
   /**
@@ -10,7 +9,7 @@ declare module 'next-auth' {
       id?: string
       email?: string
       name?: string
-      image?: ZodString
+      image?: string
     } & DefaultSession['user']
   }
 }

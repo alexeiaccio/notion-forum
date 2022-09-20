@@ -1,12 +1,22 @@
 import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
+import { ZodError } from 'zod'
 import { Context } from './context'
 
-export const t = initTRPC<{ ctx: Context }>()({
-  transformer: superjson,
-  errorFormatter({ shape }) {
-    return shape
+export const t = initTRPC.context<Context>().create({
+  errorFormatter({ shape, error }) {
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        zodError:
+          error.code === 'BAD_REQUEST' && error.cause instanceof ZodError
+            ? error.cause.flatten()
+            : null,
+      },
+    }
   },
+  transformer: superjson,
 })
 
 export const authedProcedure = t.procedure.use(({ ctx, next }) => {

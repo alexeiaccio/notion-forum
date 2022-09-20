@@ -41,7 +41,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 function ProfilePage({
   user,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
-  const { data, isFetching, isLoading } = trpc.proxy.user.getUserInfo.useQuery(
+  const { data, isFetching, isLoading } = trpc.user.getUserInfo.useQuery(
     {
       id: user.id,
     },
@@ -172,9 +172,9 @@ function ImageForm({ id, onSubmit }: { id: string; onSubmit: () => void }) {
   const form = useFormState({
     defaultValues: { url: '' },
   })
-  const utils = trpc.proxy.useContext()
+  const utils = trpc.useContext()
   const { mutate: getUploadFileUrl, isLoading } =
-    trpc.proxy.user.getUploadFileUrl.useMutation({
+    trpc.user.getUploadFileUrl.useMutation({
       async onSuccess(urls) {
         if (!urls || !file.current) return
         try {
@@ -189,10 +189,10 @@ function ImageForm({ id, onSubmit }: { id: string; onSubmit: () => void }) {
         }
       },
     })
-  const { mutate } = trpc.proxy.user.updateUserImage.useMutation({
+  const { mutate } = trpc.user.updateUserImage.useMutation({
     onSuccess(nextData) {
       utils.user.getUserInfo.setData(
-        (prevData) => {
+        (prevData: UserType) => {
           if (!prevData || !nextData) return null
           return {
             ...prevData,
@@ -262,11 +262,11 @@ function NameForm({
   email: string
   onSubmit: () => void
 }) {
-  const utils = trpc.proxy.useContext()
-  const { mutate } = trpc.proxy.user.updateUserName.useMutation({
+  const utils = trpc.useContext()
+  const { mutate } = trpc.user.updateUserName.useMutation({
     onSuccess(nextData) {
       utils.user.getUserInfo.setData(
-        (prevData): UserType | null => {
+        (prevData: UserType): UserType | null => {
           if (!prevData || !nextData) return null
           return {
             ...prevData,
@@ -305,11 +305,11 @@ function InfoForm({
   bio: ContentType[] | nil
   onSubmit: () => void
 }) {
-  const utils = trpc.proxy.useContext()
-  const { mutate } = trpc.proxy.user.updateUserInfo.useMutation({
+  const utils = trpc.useContext()
+  const { mutate } = trpc.user.updateUserInfo.useMutation({
     onSuccess(nextData) {
       utils.user.getUserInfo.setData(
-        (prevData): UserType | null => {
+        (prevData: UserType): UserType | null => {
           if (!prevData || !nextData) return null
           return {
             ...prevData,
@@ -346,7 +346,7 @@ function InfoForm({
 }
 
 function Space() {
-  const { data, isLoading } = trpc.proxy.user.getSpace.useQuery(undefined, {
+  const { data, isLoading } = trpc.user.getSpace.useQuery(undefined, {
     refetchOnWindowFocus: false,
   })
 
@@ -376,8 +376,8 @@ function Space() {
 }
 
 function PageForm({ id }: { id: string | nil }) {
-  const utils = trpc.proxy.useContext()
-  const { mutate } = trpc.proxy.user.connectPage.useMutation({
+  const utils = trpc.useContext()
+  const { mutate } = trpc.user.connectPage.useMutation({
     onSuccess(nextData) {
       utils.user.getSpace.setData(() => {
         if (!nextData) return null

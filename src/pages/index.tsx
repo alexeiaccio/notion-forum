@@ -1,14 +1,12 @@
-import { Button } from 'ariakit'
-import { Card } from '~/components'
+import { Button, Card } from '~/components'
 import { getLayout } from '~/layouts/AppLayout'
 import { getSSG } from '~/server/trpc/ssg'
-import { PagesList } from '~/utils/notion/types'
+import type { PagesList } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 
 export async function getStaticProps() {
-  const ssg = await getSSG()
-  // @ts-ignore
-  ssg.prefetchInfiniteQuery('page.getPagesList')
+  const ssg = getSSG()
+  ssg.page.getPagesList.prefetchInfinite({})
   return {
     props: {
       trpcState: ssg.dehydrate(),
@@ -17,10 +15,8 @@ export async function getStaticProps() {
 }
 
 function IndexPage() {
-  // FIXME
   const { data, hasNextPage, fetchNextPage } =
-    // @ts-ignore
-    trpc.proxy.page.getPagesList.useInfiniteQuery(
+    trpc.page.getPagesList.useInfiniteQuery(
       {},
       { getNextPageParam: (lastPage: PagesList) => lastPage.nextCursor },
     )
@@ -34,7 +30,7 @@ function IndexPage() {
       </ul>
       {hasNextPage ? (
         <div>
-          <Button onClick={fetchNextPage}>Load next</Button>
+          <Button onClick={() => fetchNextPage()}>Load next</Button>
         </div>
       ) : null}
     </>

@@ -25,7 +25,7 @@ export function Comment({
     }
   }
 }) {
-  const { data } = trpc.proxy.page.getComment.useQuery(
+  const { data } = trpc.page.getComment.useQuery(
     { breadcrambs },
     { enabled: breadcrambs.length <= 4 },
   )
@@ -109,8 +109,8 @@ export function CommentForm({
   breadcrambs: [string, ...string[]] | nil
   onSummit?: () => void
 }) {
-  const utils = trpc.proxy.useContext()
-  const { mutate } = trpc.proxy.user.postComment.useMutation({
+  const utils = trpc.useContext()
+  const { mutate } = trpc.user.postComment.useMutation({
     onSuccess(nextData) {
       utils.page.getBlockChildren.setData(
         (

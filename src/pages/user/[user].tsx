@@ -18,19 +18,16 @@ export async function getStaticProps(
 ) {
   const id = ctx.params?.user
   const user = await getUserInfo(id)
-  const ssg = await getSSG()
-  // @ts-ignore
-  ssg.prefetchInfiniteQuery('page.getUserPagesList', { id })
+  const ssg = getSSG()
+  ssg.page.getUserPagesList.prefetchInfinite({ id })
   return {
     props: { user, trpcState: ssg.dehydrate() },
   }
 }
 
 function ProfilePage({ user }: InferGetStaticPropsType<typeof getStaticProps>) {
-  // FIXME
   const { data, hasNextPage, fetchNextPage } =
-    // @ts-ignore
-    trpc.proxy.page.getUserPagesList.useInfiniteQuery(
+    trpc.page.getUserPagesList.useInfiniteQuery(
       { id: user?.id },
       { getNextPageParam: (lastPage: PagesList) => lastPage.nextCursor },
     )
@@ -62,7 +59,7 @@ function ProfilePage({ user }: InferGetStaticPropsType<typeof getStaticProps>) {
       </ul>
       {hasNextPage ? (
         <div>
-          <Button onClick={fetchNextPage}>Load next</Button>
+          <Button onClick={() => fetchNextPage()}>Load next</Button>
         </div>
       ) : null}
     </>

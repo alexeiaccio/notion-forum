@@ -34,7 +34,7 @@ function EquationComponent({
   const [equationValue, setEquationValue] = useState(equation)
   const [showEquationEditor, setShowEquationEditor] = useState<boolean>(false)
   const inputRef = useRef(null)
-  const readOnly = editor.isReadOnly()
+  const readOnly = !editor.isEditable()
 
   const onHide = useCallback(
     (restoreSelection?: boolean) => {

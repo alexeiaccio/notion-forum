@@ -20,9 +20,8 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
     }
   }
 
-  const ssg = await getSSG()
-  // @ts-ignore
-  ssg.prefetchInfiniteQuery('user.getDraftsList')
+  const ssg = getSSG()
+  ssg.user.getDraftsList.prefetchInfinite({})
   return {
     props: {
       trpcState: ssg.dehydrate(),
@@ -32,8 +31,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 
 function DraftsPage() {
   const { data, hasNextPage, fetchNextPage } =
-    // @ts-ignore
-    trpc.proxy.user.getDraftsList.useInfiniteQuery(
+    trpc.user.getDraftsList.useInfiniteQuery(
       {},
       { getNextPageParam: (lastPage: PagesList) => lastPage.nextCursor },
     )
@@ -50,7 +48,7 @@ function DraftsPage() {
       </ul>
       {hasNextPage ? (
         <div>
-          <Button onClick={fetchNextPage}>Load next</Button>
+          <Button onClick={() => fetchNextPage()}>Load next</Button>
         </div>
       ) : null}
       {addDraft ? (
@@ -69,8 +67,8 @@ DraftsPage.getLayout = getLayout
 export default DraftsPage
 
 export function DraftForm({ onSubmit }: { onSubmit?: () => void }) {
-  const utils = trpc.proxy.useContext()
-  const { mutate } = trpc.proxy.user.createDraft.useMutation({
+  const utils = trpc.useContext()
+  const { mutate } = trpc.user.createDraft.useMutation({
     onSuccess() {
       utils.user.getDraftsList.invalidate()
     },

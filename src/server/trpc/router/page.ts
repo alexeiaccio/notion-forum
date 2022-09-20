@@ -21,18 +21,14 @@ import { t } from '../utils'
 
 export const pageRouter = t.router({
   getPagesList: t.procedure
-    .input(z.object({ cursor: z.string().nullish() }).nullish())
+    .input(z.object({ cursor: z.string().nullish() }))
     .output(pagesList.nullish())
     .query(async ({ input }) => {
       const res = await getPagesList(input?.cursor)
       return res
     }),
   getUserPagesList: t.procedure
-    .input(
-      z
-        .object({ id: z.string().nullish(), cursor: z.string().nullish() })
-        .nullish(),
-    )
+    .input(z.object({ id: z.string().nullish(), cursor: z.string().nullish() }))
     .output(pagesList.nullish())
     .query(async ({ input }) => {
       const res = await getPagesList(input?.cursor, { author: input?.id })

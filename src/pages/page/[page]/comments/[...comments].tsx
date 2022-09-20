@@ -40,7 +40,7 @@ function CommentPage({
   breadcrambs,
   comment,
 }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const { data } = trpc.proxy.page.getBlockChildren.useQuery(
+  const { data } = trpc.page.getBlockChildren.useQuery(
     { id: comment.id },
     { initialData: { content: comment.content, comments: comment.comments } },
   )

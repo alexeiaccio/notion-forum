@@ -1,5 +1,6 @@
 import { twMerge } from 'tailwind-merge'
 import { Nilable } from 'tsdef'
+import { PageLikesType } from '~/utils/notion/types'
 import { trpc } from '~/utils/trpc'
 import { Button } from '../Button'
 
@@ -12,8 +13,8 @@ export default function Likes({
   likes: Nilable<number>
   dislikes: Nilable<number>
 }) {
-  const utils = trpc.proxy.useContext()
-  const { data: page } = trpc.proxy.page.getPageLikes.useQuery(
+  const utils = trpc.useContext()
+  const { data: page } = trpc.page.getPageLikes.useQuery(
     { id },
     {
       initialData: {
@@ -23,25 +24,24 @@ export default function Likes({
       enabled: Boolean(id),
     },
   )
-  const { data, isLoading, isFetched } = trpc.proxy.user.getUserLikes.useQuery(
+  const { data, isLoading, isFetched } = trpc.user.getUserLikes.useQuery(
     { id },
-    { enabled: Boolean(id), requestContext: { skipBatch: true } },
+    { enabled: Boolean(id), trpc: { context: { skipBatch: true } } },
   )
-  const { mutate, isLoading: isMutating } =
-    trpc.proxy.user.postLike.useMutation({
-      onSuccess(nextValue) {
-        utils.user.getUserLikes.setData(() => nextValue, { id })
-        utils.user.getUserLikes.invalidate({ id })
-        utils.page.getPageLikes.setData(
-          (prevData) => ({
-            likes: (prevData?.likes ?? 0) + (nextValue?.like ? 1 : 0),
-            dislikes: (prevData?.dislikes ?? 0) + (nextValue?.dislike ? 1 : 0),
-          }),
-          { id },
-        )
-        utils.page.getPageLikes.invalidate({ id })
-      },
-    })
+  const { mutate, isLoading: isMutating } = trpc.user.postLike.useMutation({
+    onSuccess(nextValue) {
+      utils.user.getUserLikes.setData(() => nextValue, { id })
+      utils.user.getUserLikes.invalidate({ id })
+      utils.page.getPageLikes.setData(
+        (prevData: PageLikesType) => ({
+          likes: (prevData?.likes ?? 0) + (nextValue?.like ? 1 : 0),
+          dislikes: (prevData?.dislikes ?? 0) + (nextValue?.dislike ? 1 : 0),
+        }),
+        { id },
+      )
+      utils.page.getPageLikes.invalidate({ id })
+    },
+  })
 
   return (
     <div className="flex items-center gap-2 text-xs leading-normal">
@@ -80,32 +80,31 @@ export function CommentLikes({
   id: Nilable<string>
   commentId: Nilable<string>
 }) {
-  const utils = trpc.proxy.useContext()
-  const { data: page } = trpc.proxy.page.getCommentLikes.useQuery(
+  const utils = trpc.useContext()
+  const { data: page } = trpc.page.getCommentLikes.useQuery(
     { id },
     {
       enabled: Boolean(id),
     },
   )
-  const { data, isLoading, isFetched } = trpc.proxy.user.getUserLikes.useQuery(
+  const { data, isLoading, isFetched } = trpc.user.getUserLikes.useQuery(
     { id: commentId },
-    { enabled: Boolean(commentId), requestContext: { skipBatch: true } },
+    { enabled: Boolean(commentId), trpc: { context: { skipBatch: true } } },
   )
-  const { mutate, isLoading: isMutating } =
-    trpc.proxy.user.postLike.useMutation({
-      onSuccess(nextValue) {
-        utils.user.getUserLikes.setData(() => nextValue, { id: commentId })
-        utils.user.getUserLikes.invalidate({ id: commentId })
-        utils.page.getCommentLikes.setData(
-          (prevData) => ({
-            likes: (prevData?.likes ?? 0) + (nextValue?.like ? 1 : 0),
-            dislikes: (prevData?.dislikes ?? 0) + (nextValue?.dislike ? 1 : 0),
-          }),
-          { id },
-        )
-        utils.page.getCommentLikes.invalidate({ id })
-      },
-    })
+  const { mutate, isLoading: isMutating } = trpc.user.postLike.useMutation({
+    onSuccess(nextValue) {
+      utils.user.getUserLikes.setData(() => nextValue, { id: commentId })
+      utils.user.getUserLikes.invalidate({ id: commentId })
+      utils.page.getCommentLikes.setData(
+        (prevData: PageLikesType) => ({
+          likes: (prevData?.likes ?? 0) + (nextValue?.like ? 1 : 0),
+          dislikes: (prevData?.dislikes ?? 0) + (nextValue?.dislike ? 1 : 0),
+        }),
+        { id },
+      )
+      utils.page.getCommentLikes.invalidate({ id })
+    },
+  })
 
   return (
     <div className="flex items-center gap-2 text-xs leading-normal">

@@ -211,7 +211,7 @@ function RichTextRenederer({
 
 function UserRelationLink({ content }: { content: MentionType }) {
   if (content.mention.type !== 'page' || !content?.mention?.page) return null
-  const { data } = trpc.proxy.page.getRelations.useQuery({
+  const { data } = trpc.page.getRelations.useQuery({
     ids: [{ id: content.mention.page }],
   })
   return (

@@ -29,7 +29,7 @@ export async function getStaticProps(
 }
 
 function Page({ page }: InferGetStaticPropsType<typeof getStaticProps>) {
-  const { data } = trpc.proxy.page.getBlockChildren.useQuery(
+  const { data } = trpc.page.getBlockChildren.useQuery(
     { id: page.id },
     { initialData: { content: page.content, comments: page.comments } },
   )
@@ -88,9 +88,9 @@ Page.getLayout = getLayout
 export default Page
 
 function Published({ id }: { id: Nilable<string> }) {
-  const { data } = trpc.proxy.user.getPublished.useQuery(
+  const { data } = trpc.user.getPublished.useQuery(
     { id },
-    { enabled: Boolean(id), requestContext: { skipBatch: true } },
+    { enabled: Boolean(id), trpc: { context: { skipBatch: true } } },
   )
 
   if (!data?.published) return null

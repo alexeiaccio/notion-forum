@@ -45,7 +45,7 @@ export function getPropertyItem<
   type: Type,
 ): Res[TypeKey] | null {
   return props && key in props
-    ? (props[key] as Res)?.[type as TypeKey] || null
+    ? (props[key] as Res)?.[type as any] || null
     : null
 }
 
@@ -71,7 +71,7 @@ export function getProperty<
       : null
   }
   return props && key in props
-    ? (props[key] as Res)?.[type as TypeKey] || null
+    ? (props[key] as Res)?.[type as any] || null
     : null
 }
 

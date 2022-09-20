@@ -23,7 +23,7 @@ export function Header() {
 
 function Breadcrumbs() {
   const { query } = useRouter()
-  const { data } = trpc.proxy.page.getBreadcrambs.useQuery(
+  const { data } = trpc.page.getBreadcrambs.useQuery(
     {
       breadcrambs: [
         query.page as string,
@@ -90,9 +90,9 @@ function Breadcrumbs() {
 }
 
 function User() {
-  const { data: session, isLoading } = trpc.proxy.auth.getSession.useQuery(
+  const { data: session, isLoading } = trpc.auth.getSession.useQuery(
     undefined,
-    { refetchOnWindowFocus: false, requestContext: { skipBatch: true } },
+    { refetchOnWindowFocus: false, trpc: { context: { skipBatch: true } } },
   )
   const menu = useMenuState({ gutter: 8, placement: 'bottom-end' })
   if (isLoading) return <Button>...</Button>
